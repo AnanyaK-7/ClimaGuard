@@ -1,0 +1,179 @@
+/* ClimaCheck - Garnier ClimaGuard Executive Derm-Tech Stylesheet */
+/* L'Oréal Sustainability Challenge 2026 - Option 02 Research & Innovation */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --brand-forest: #0A2922;
+  --brand-deep: #0E3B35;
+  --brand-emerald: #10B981;
+  --brand-jade: #1F7A63;
+  --brand-mint: #EAF4EF;
+  --brand-mint-light: #F4FAF7;
+  --brand-saffron: #F59E0B;
+  --brand-amber: #D97706;
+  --brand-coral: #E11D48;
+  --brand-teal: #0E8388;
+  --brand-ink: #111D1B;
+  --brand-slate: #334155;
+  --card-shadow: 0 10px 25px -5px rgba(10, 41, 34, 0.06), 0 8px 10px -6px rgba(10, 41, 34, 0.04);
+  --card-hover-shadow: 0 20px 35px -5px rgba(10, 41, 34, 0.12), 0 10px 15px -5px rgba(10, 41, 34, 0.06);
+}
+
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+*, ::before, ::after {
+  box-sizing: inherit;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--brand-ink);
+  background-color: var(--brand-mint);
+  background-image: 
+    radial-gradient(at 10% 10%, rgba(16, 185, 129, 0.09) 0px, transparent 55%),
+    radial-gradient(at 90% 15%, rgba(245, 158, 11, 0.07) 0px, transparent 50%),
+    radial-gradient(at 50% 90%, rgba(14, 131, 136, 0.08) 0px, transparent 60%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif {
+  font-family: 'Fraunces', 'DM Serif Display', Georgia, serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(14, 59, 53, 0.08);
+}
+
+.glass-card-header {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGently {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 0.92;
+  }
+}
+
+@keyframes beaconPing {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-beacon {
+  animation: beaconPing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Circular BSI Meter SVG */
+.bsi-dial-bg {
+  stroke: #E2E8F0;
+  stroke-linecap: round;
+}
+
+.bsi-dial-progress {
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease;
+}
+
+/* Active City and Preset Chip states */
+.chip-active {
+  background: #0E3B35 !important;
+  color: #FFFFFF !important;
+  border-color: #0E3B35 !important;
+  box-shadow: 0 2px 6px rgba(14, 59, 53, 0.25) !important;
+}
+
+.preset-chip-active {
+  background: #F59E0B !important;
+  color: #0E3B35 !important;
+  font-weight: 700 !important;
+  border-color: #D97706 !important;
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3) !important;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(234, 244, 239, 0.7);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(31, 122, 99, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(31, 122, 99, 0.55);
+}
+
+/* Accessibility & Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+button, input, select, a {
+  touch-action: manipulation;
+}
+
+button:focus-visible, 
+input:focus-visible, 
+select:focus-visible {
+  outline: 2px solid var(--brand-jade);
+  outline-offset: 2px;
+}
