@@ -4,24 +4,27 @@ __pycache__/
 *$py.class
 .pytest_cache/
 
-# Debug and temporary screenshot captures
-screenshot_desktop_debug.png
-screenshot_full_375.png
-screenshot_hydrate_mode.png
-screenshot_iphone_375.png
-screenshot_mobile_375_credibility.png
-screenshot_shield_mode.png
-screenshot_tracker_7days.png
-screenshot_tracker_empty.png
-tracker_card_7days.png
-tracker_card_empty.png
+# Development / E2E scratch scripts
+verify_e2e.py
+scratch/
 
-# Challenge input brief
-loreal challenge.pdf
+# Presentations and PDFs
+*.pptx
+*.ppt
+*.pdf
 
-# Logs and environment
-*.log
+# Screenshots and generated media
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+
+# Environment variables & secrets
 .env
-.env.local
-.DS_Store
+.env.*
+*.local
+
+# OS files
 Thumbs.db
+.DS_Store
