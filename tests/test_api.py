@@ -256,3 +256,91 @@ class TestAPIEndpoints:
         assert res.status_code == 200
         data = res.json()
         assert data["status"] == "unconfigured"
+
+# ============================================================================
+# 5. ALL 16 COMBINATIONS OF SKIN FEEL TOGGLES PERSONALIZATION TESTS
+# ============================================================================
+import itertools
+
+class TestSkinFeelPersonalization:
+    """
+    Verifies that every combination of the four skin feel toggles (oily, tight, dull, breakouts)
+    visibly changes the rendered routine text, maintains mode priority, and observes non-medical phrasing.
+    """
+    ALL_SYMPTOMS = ["oily", "tight", "dull", "breakouts"]
+
+    @pytest.fixture
+    def all_16_combinations(self):
+        combos = []
+        for r in range(len(self.ALL_SYMPTOMS) + 1):
+            for subset in itertools.combinations(self.ALL_SYMPTOMS, r):
+                combos.append(list(subset))
+        assert len(combos) == 16
+        return combos
+
+    def test_all_16_combinations_change_routine(self, all_16_combinations):
+        # Baseline: empty concerns under mild conditions (AQI 70, UV 3.0, Humidity 55.0)
+        base_res = client.post("/api/recommend", json={
+            "conditions": {"approx_aqi": 70, "uv": 3.0, "humidity": 55.0},
+            "concerns": []
+        }).json()
+        base_text = " ".join(s["title"] + " " + s["desc"] + " " + (s["dose"] or "") for s in base_res["routine"]["am"] + base_res["routine"]["pm"])
+
+        for combo in all_16_combinations:
+            res = client.post("/api/recommend", json={
+                "conditions": {"approx_aqi": 70, "uv": 3.0, "humidity": 55.0},
+                "concerns": combo
+            }).json()
+
+            current_text = " ".join(s["title"] + " " + s["desc"] + " " + (s["dose"] or "") for s in res["routine"]["am"] + res["routine"]["pm"])
+
+            if not combo:
+                assert current_text == base_text
+                assert res["personalization_note"] is None
+                assert res["balance_tips_added"] is False
+            else:
+                # Every non-empty combination MUST change the rendered routine text!
+                assert current_text != base_text, f"Routine text for combination {combo} did not change compared to baseline!"
+
+                # Check Oily assertions
+                if "oily" in combo:
+                    assert any("You reported: Oily / shiny" in r for r in res["reasons"])
+                    assert "smaller amount" in current_text or "1 pump" in current_text
+                    assert "lightweight gel" in current_text.lower() or "excess oil" in current_text.lower()
+
+                # Check Tight assertions
+                if "tight" in combo:
+                    assert any("You reported: Tight / dry" in r for r in res["reasons"])
+                    assert res["mode"] == "hydrate"
+                    assert "hydrating layer" in current_text.lower() or "non-foaming" in current_text.lower()
+
+                # Check Dull assertions
+                if "dull" in combo:
+                    assert any("You reported: Dull / tired" in r for r in res["reasons"])
+                    assert "brightening note" in current_text.lower() or "radiance" in current_text.lower()
+
+                # Check Breakouts assertions
+                if "breakouts" in combo:
+                    assert any("You reported: Breakouts" in r for r in res["reasons"])
+                    assert "non-comedogenic" in current_text.lower()
+                    assert "consult a dermatologist" in current_text.lower()
+
+    def test_shield_mode_retention_and_balance_tips(self, all_16_combinations):
+        # Under Delhi winter smog (AQI 348), Shield mode must remain active across all combinations
+        for combo in all_16_combinations:
+            res = client.post("/api/recommend", json={
+                "conditions": {"approx_aqi": 348, "uv": 3.4, "humidity": 35.0},
+                "concerns": combo
+            }).json()
+
+            assert res["mode"] == "shield", f"Expected Shield mode to remain active for combo {combo}"
+
+            if combo:
+                assert res["personalization_note"] == "Shield mode stays active because of air quality; your selection adjusted the steps."
+            else:
+                assert res["personalization_note"] is None
+
+            if "oily" in combo:
+                assert res["balance_tips_added"] is True, "Balance tips added badge must be True when oily is selected in Shield mode"
+            else:
+                assert res["balance_tips_added"] is False

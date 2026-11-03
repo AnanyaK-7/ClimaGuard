@@ -360,14 +360,172 @@ def evaluate_mode(
 
     all_triggers = shield_reasons + hydrate_reasons + balance_reasons
 
+    # User-reported reason chips for active decision rules
+    user_report_chips: List[str] = []
+    if any(k in normalized_concerns for k in ["oily", "oily/shiny", "shine"]):
+        user_report_chips.append("You reported: Oily / shiny")
+    if any(k in normalized_concerns for k in ["tight", "tight/dry", "dry"]):
+        user_report_chips.append("You reported: Tight / dry")
+    if any(k in normalized_concerns for k in ["dull", "dull/tired", "tired"]):
+        user_report_chips.append("You reported: Dull / tired")
+    if any(k in normalized_concerns for k in ["breakouts", "acne", "blemish", "blemishes", "congestion"]):
+        user_report_chips.append("You reported: Breakouts")
+
     if shield_reasons:
-        return "shield", shield_reasons, all_triggers
+        active_mode = "shield"
+        active_reasons = list(shield_reasons)
     elif hydrate_reasons:
-        return "hydrate", hydrate_reasons, all_triggers
+        active_mode = "hydrate"
+        env_hydrate = [r for r in hydrate_reasons if not r.startswith("Skin reported:")]
+        active_reasons = env_hydrate if env_hydrate else ["Skin reported: Tight / dry feeling"]
     elif balance_reasons:
-        return "balance", balance_reasons, all_triggers
+        active_mode = "balance"
+        env_balance = [r for r in balance_reasons if not r.startswith("Skin reported:")]
+        active_reasons = env_balance if env_balance else ["Skin reported: Oily / shiny feeling"]
     else:
-        return "balance", ["Optimal conditions: Everyday barrier maintenance"], all_triggers
+        active_mode = "balance"
+        active_reasons = ["Optimal conditions: Everyday barrier maintenance"]
+
+    for chip in user_report_chips:
+        if chip not in active_reasons:
+            active_reasons.append(chip)
+
+    return active_mode, active_reasons, all_triggers
+
+def build_personalized_routine(
+    base_mode: str,
+    concerns: List[str],
+    aqi: int,
+    uv: float,
+    humidity: float,
+) -> Tuple[List[Dict[str, str]], List[Dict[str, str]], Optional[str], bool]:
+    """
+    Personalizes AM and PM barrier routines based on user-reported skin feedback,
+    while strictly keeping the mode priority (Shield > Hydrate > Balance).
+    Returns: (am_steps, pm_steps, mode_retention_note, balance_tips_added)
+    """
+    mode_key = base_mode.lower()
+    base = ROUTINES.get(mode_key, ROUTINES["balance"])
+
+    am_steps = [dict(s) for s in base["am"]]
+    pm_steps = [dict(s) for s in base["pm"]]
+
+    normalized = {c.strip().lower() for c in concerns if isinstance(c, str)}
+    is_oily = any(k in normalized for k in ["oily", "oily/shiny", "shine"])
+    is_tight = any(k in normalized for k in ["tight", "tight/dry", "dry"])
+    is_dull = any(k in normalized for k in ["dull", "dull/tired", "tired"])
+    is_breakouts = any(k in normalized for k in ["breakouts", "acne", "blemish", "blemishes", "congestion"])
+
+    balance_tips_added = is_oily and mode_key != "balance"
+
+    # Mode retention note when environmental trigger prevents a mode shift
+    mode_retention_note: Optional[str] = None
+    has_concerns = is_oily or is_tight or is_dull or is_breakouts
+
+    if has_concerns:
+        if aqi > 200:
+            mode_retention_note = "Shield mode stays active because of air quality; your selection adjusted the steps."
+        elif uv >= 6.0:
+            mode_retention_note = "Shield mode stays active because of solar UV; your selection adjusted the steps."
+        elif humidity < 40.0:
+            mode_retention_note = "Hydrate mode stays active because of dry air; your selection adjusted the steps."
+        elif humidity > 65.0:
+            mode_retention_note = "Balance mode stays active because of humidity; your selection adjusted the steps."
+        else:
+            if is_tight:
+                mode_retention_note = None
+            else:
+                mode_retention_note = "Balance mode stays active; your selection adjusted the steps."
+
+    # 1. Personalize for Oily / Shiny
+    if is_oily:
+        am_steps[0] = {
+            "step": "01",
+            "title": "Gentle Low-Foaming Cleanse",
+            "desc": "Gentle cleanse with lukewarm water to clear excess surface sebum without aggressive stripping or triggering rebound oil.",
+            "dose": "1 pump",
+        }
+        am_steps[1] = {
+            "step": "02",
+            "title": "Garnier ClimaGuard (Lightweight Gel Dosing)",
+            "desc": "Apply lightweight gel texture in a smaller amount. 1 pump delivers 5% Niacinamide to help control excess oil while 2% Ectoin helps protect against micro-particulates without greasiness.",
+            "dose": "1 pump (smaller amount)",
+        }
+        am_steps[2]["desc"] = am_steps[2]["desc"] + " Lightweight fluid texture; no heavy creams to prevent midday shine."
+
+        pm_steps[0] = {
+            "step": "01",
+            "title": "Gentle Purifying Cleanse",
+            "desc": "Ultra-gentle purifying wash to lift daytime sebum, sunscreen, and particulate grime without disturbing skin lipids.",
+            "dose": "Gentle rinse",
+        }
+        pm_steps[1] = {
+            "step": "02",
+            "title": "Garnier ClimaGuard Overnight Gel Recovery",
+            "desc": "Apply 1-2 pumps lightweight gel texture (smaller amount). High-potency Niacinamide supports ceramide production, may help control excess oil, and aids overnight barrier recovery.",
+            "dose": "1-2 pumps (smaller amount)",
+        }
+        pm_steps[2] = {
+            "step": "03",
+            "title": "Lightweight Barrier Emulsion",
+            "desc": "Apply sheer micro-drop only where needed. Avoid heavy creams to maintain pores clear and breathable overnight.",
+            "dose": "Micro pea-sized drop",
+        }
+
+    # 2. Personalize for Tight / Dry
+    if is_tight:
+        am_steps[0] = {
+            "step": "01",
+            "title": "Milky Non-Foaming Conditioning Wash",
+            "desc": "Gentle non-foaming cleanse with lukewarm water. Cushions the barrier and prevents trans-epidermal moisture loss.",
+            "dose": "Gentle splash",
+        }
+        if not is_oily:
+            am_steps[1] = {
+                "step": "02",
+                "title": "Garnier ClimaGuard Deep Moisture Infusion",
+                "desc": "Apply generously on damp skin, then pat an extra hydrating layer over dry areas. 1.2% Ceramide NP and squalane bind moisture deeply within stratum corneum.",
+                "dose": "2 generous pumps + hydrating layer",
+            }
+        else:
+            am_steps[1] = {
+                "step": "02",
+                "title": "Garnier ClimaGuard Balanced Gel Infusion",
+                "desc": "Smooth lightweight gel onto damp skin to add a hydrating layer without heavy oils. 5% Niacinamide may help control excess oil while Ceramide NP relieves tight feeling.",
+                "dose": "1-2 pumps on damp skin",
+            }
+
+        pm_steps[0] = {
+            "step": "01",
+            "title": "Ultra-Gentle Non-Foaming Cleanse",
+            "desc": "Non-foaming nourishing cleanse to lift impurities without stripping delicate barrier lipids.",
+            "dose": "Lukewarm rinse",
+        }
+        if not is_oily:
+            pm_steps[2] = {
+                "step": "03",
+                "title": "Lipid-Replenishing Barrier Seal",
+                "desc": "Seal with a nourishing layer of sugarcane squalane emulsion to help reduce overnight moisture loss and restore lipid comfort.",
+                "dose": "Generous pea-sized amount",
+            }
+
+    # 3. Personalize for Dull / Tired
+    if is_dull:
+        am_brightening = " Gentle exfoliation-free brightening note: antioxidant support from Vitamin C-rich Amla paired with daily sunscreen helps maintain radiant skin feel without harsh exfoliating acids."
+        am_steps[1]["desc"] += am_brightening
+
+        pm_brightening = " Overnight radiance note: supports natural barrier rest, hydration, and overnight recovery through sleep (exfoliation-free)."
+        pm_steps[1]["desc"] += pm_brightening
+
+    # 4. Personalize for Breakouts
+    if is_breakouts:
+        am_breakouts = " Non-comedogenic & fragrance-free steps: avoid layering heavy products and do not pick at skin. If breakouts persist, consult a dermatologist."
+        am_steps[1]["desc"] += am_breakouts
+
+        pm_breakouts = " Non-comedogenic & fragrance-free formula: avoid pore-clogging balms and do not pick at skin. If breakouts persist, consult a dermatologist."
+        pm_steps[1]["desc"] += pm_breakouts
+
+    return am_steps, pm_steps, mode_retention_note, balance_tips_added
 
 # ============================================================================
 # CLIMATE EXTREME PRESETS (FOR SIMULATOR & FALLBACK)
@@ -535,6 +693,8 @@ class RecommendResponse(BaseModel):
     all_triggered_rules: List[str]
     routine: RoutineGroup
     barrier_stress_index: Optional[int] = None
+    personalization_note: Optional[str] = None
+    balance_tips_added: bool = False
 
 class CheckInItem(BaseModel):
     date: str = Field(..., description="Date formatted as YYYY-MM-DD")
@@ -731,6 +891,14 @@ async def recommend_mode(payload: RecommendRequest):
         concerns=payload.concerns,
     )
 
+    am_steps, pm_steps, retention_note, balance_tips = build_personalized_routine(
+        base_mode=mode,
+        concerns=payload.concerns,
+        aqi=cond.approx_aqi,
+        uv=cond.uv,
+        humidity=cond.humidity,
+    )
+
     routine_data = ROUTINES.get(mode, ROUTINES["balance"])
     temp = cond.temperature if cond.temperature is not None else 28.0
     bsi = calculate_barrier_stress_index(cond.approx_aqi * 0.7, cond.uv, cond.humidity, temp)["score"]
@@ -743,9 +911,11 @@ async def recommend_mode(payload: RecommendRequest):
         reasons=active_reasons,
         all_triggered_rules=all_triggers,
         barrier_stress_index=bsi,
+        personalization_note=retention_note,
+        balance_tips_added=balance_tips,
         routine=RoutineGroup(
-            am=[RoutineStep(**s) for s in routine_data["am"]],
-            pm=[RoutineStep(**s) for s in routine_data["pm"]],
+            am=[RoutineStep(**s) for s in am_steps],
+            pm=[RoutineStep(**s) for s in pm_steps],
         ),
     )
 

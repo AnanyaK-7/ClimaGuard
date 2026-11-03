@@ -382,9 +382,14 @@
             <!-- Mode Header Row -->
             <div class="flex items-start justify-between gap-3">
               <div class="space-y-1 flex-1 min-w-0">
-                <span id="mode-badge" class="inline-block text-[10px] sm:text-xs uppercase tracking-wider font-extrabold px-3 py-1 rounded-full border shadow-xs bg-rose-100 text-rose-800 border-rose-300">
-                  Today's Priority: SHIELD
-                </span>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span id="mode-badge" class="inline-block text-[10px] sm:text-xs uppercase tracking-wider font-extrabold px-3 py-1 rounded-full border shadow-xs bg-rose-100 text-rose-800 border-rose-300">
+                    Today's Priority: SHIELD
+                  </span>
+                  <span id="mode-balance-tips-badge" class="hidden text-[10px] sm:text-xs uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full border shadow-xs bg-amber-100 text-amber-900 border-amber-300">
+                    Balance tips added
+                  </span>
+                </div>
                 <h3 id="mode-title" class="text-2xl sm:text-3xl font-serif font-bold text-gray-900 pt-0.5 truncate">Shield Mode</h3>
                 <p id="mode-tagline" class="text-xs sm:text-sm text-gray-600 font-semibold leading-snug">High Environmental Stress Barrier Defense</p>
               </div>
@@ -413,6 +418,14 @@
                   <svg class="w-3.5 h-3.5 text-rose-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                   <span>AQI 320 &gt; 200 (Very Poor air quality)</span>
                 </span>
+              </div>
+
+              <!-- Note if selection adjusted steps inside active mode -->
+              <div id="mode-personalization-note" class="hidden p-2.5 rounded-2xl bg-emerald-50/90 border border-emerald-300/60 text-xs text-emerald-900 flex items-center gap-2 shadow-xs">
+                <svg class="w-4 h-4 text-emerald-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span id="mode-personalization-note-text" class="leading-relaxed font-medium"></span>
               </div>
             </div>
 
@@ -449,7 +462,17 @@
               <h3 class="text-sm font-serif font-bold text-[#0A2922]">How is your skin feeling right now?</h3>
               <p class="text-[11px] text-gray-500">Tap your symptoms to adjust today's barrier routine in real-time.</p>
             </div>
-            <span class="text-[10px] bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300 flex-shrink-0">Live Feedback</span>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <button 
+                id="btn-clear-skin-feel" 
+                type="button" 
+                class="hidden text-[10px] sm:text-[11px] font-bold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 px-2.5 py-0.5 rounded-full border border-rose-200 transition-colors shadow-xs"
+                title="Clear all selected symptoms"
+              >
+                Clear
+              </button>
+              <span class="text-[10px] bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300 flex-shrink-0">Live Feedback</span>
+            </div>
           </div>
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">

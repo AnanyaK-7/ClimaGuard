@@ -185,6 +185,13 @@ function decideMode(inputs) {
     balanceReasons.push('Skin reported: Oily / Shiny feeling');
   }
 
+  // User reported reason chips
+  const userReportChips = [];
+  if (skinFeel.oily) userReportChips.push('You reported: Oily / shiny');
+  if (skinFeel.tight) userReportChips.push('You reported: Tight / dry');
+  if (skinFeel.dull) userReportChips.push('You reported: Dull / tired');
+  if (skinFeel.breakouts) userReportChips.push('You reported: Breakouts');
+
   // Determine active mode by strict priority: Shield > Hydrate > Balance
   let activeMode = 'BALANCE';
   let activeReasons = [];
@@ -192,18 +199,25 @@ function decideMode(inputs) {
 
   if (shieldReasons.length > 0) {
     activeMode = 'SHIELD';
-    activeReasons = shieldReasons;
+    activeReasons = [...shieldReasons];
   } else if (hydrateReasons.length > 0) {
     activeMode = 'HYDRATE';
-    activeReasons = hydrateReasons;
+    activeReasons = [...hydrateReasons];
   } else if (balanceReasons.length > 0) {
     activeMode = 'BALANCE';
-    activeReasons = balanceReasons;
+    activeReasons = [...balanceReasons];
   } else {
     activeMode = 'BALANCE';
     activeReasons = ['Optimal conditions: Everyday barrier maintenance'];
     isDefault = true;
   }
+
+  // Append user reported chips if not already present
+  userReportChips.forEach(chip => {
+    if (!activeReasons.includes(chip)) {
+      activeReasons.push(chip);
+    }
+  });
 
   return {
     mode: activeMode,
@@ -217,64 +231,7 @@ function decideMode(inputs) {
   };
 }
 
-// ============================================================================
-// 4. CONSOLE ASSERT UNIT TESTS
-// ============================================================================
-function runUnitTests() {
-  console.group('🧪 ClimaCheck decideMode() Unit Test Suite');
 
-  // Test 1: AQI > 200 triggers SHIELD
-  const t1 = decideMode({ aqi: 205, uv: 3, humidity: 50 });
-  console.assert(t1.mode === 'SHIELD', 'Test 1 Failed: AQI > 200 should trigger SHIELD');
-
-  // Test 2: UV >= 6 triggers SHIELD (exact boundary UV = 6)
-  const t2 = decideMode({ aqi: 150, uv: 6, humidity: 50 });
-  console.assert(t2.mode === 'SHIELD', 'Test 2 Failed: UV = 6 should trigger SHIELD');
-
-  // Test 3: UV 5.9 does not trigger SHIELD
-  const t3 = decideMode({ aqi: 150, uv: 5.9, humidity: 50 });
-  console.assert(t3.mode === 'BALANCE', 'Test 3 Failed: UV 5.9 should default to BALANCE');
-
-  // Test 4: Humidity < 40% triggers HYDRATE
-  const t4 = decideMode({ aqi: 120, uv: 4, humidity: 39 });
-  console.assert(t4.mode === 'HYDRATE', 'Test 4 Failed: Humidity 39% should trigger HYDRATE');
-
-  // Test 5: Exact boundary Humidity = 40% should NOT trigger HYDRATE by humidity
-  const t5 = decideMode({ aqi: 100, uv: 3, humidity: 40 });
-  console.assert(t5.mode === 'BALANCE', 'Test 5 Failed: Humidity 40% should default to BALANCE');
-
-  // Test 6: Tight/dry skin triggers HYDRATE even if humidity is normal
-  const t6 = decideMode({ aqi: 100, uv: 3, humidity: 55, skinFeel: { tight: true } });
-  console.assert(t6.mode === 'HYDRATE', 'Test 6 Failed: Tight skin should trigger HYDRATE');
-
-  // Test 7: Humidity > 65% triggers BALANCE
-  const t7 = decideMode({ aqi: 90, uv: 4, humidity: 66 });
-  console.assert(t7.mode === 'BALANCE', 'Test 7 Failed: Humidity 66% should trigger BALANCE');
-
-  // Test 8: Exact boundary Humidity = 65% should NOT trigger BALANCE by humidity (defaults to balance)
-  const t8 = decideMode({ aqi: 90, uv: 4, humidity: 65 });
-  console.assert(t8.mode === 'BALANCE' && t8.isDefault, 'Test 8 Failed: Humidity 65% should be default balance');
-
-  // Test 9: Priority 1: SHIELD beats HYDRATE (AQI > 200 + Humidity < 40%)
-  const t9 = decideMode({ aqi: 240, uv: 4, humidity: 30 });
-  console.assert(t9.mode === 'SHIELD', 'Test 9 Failed: Shield must take priority over Hydrate');
-
-  // Test 10: Priority 2: SHIELD beats BALANCE (UV >= 6 + Humidity > 65%)
-  const t10 = decideMode({ aqi: 80, uv: 8, humidity: 75 });
-  console.assert(t10.mode === 'SHIELD', 'Test 10 Failed: Shield must take priority over Balance');
-
-  // Test 11: Priority 3: HYDRATE beats BALANCE (Humidity < 40% + Oily skin toggle)
-  const t11 = decideMode({ aqi: 110, uv: 3, humidity: 35, skinFeel: { oily: true } });
-  console.assert(t11.mode === 'HYDRATE', 'Test 11 Failed: Hydrate must take priority over Balance');
-
-  // Test 12: Default fallback when no rules are met
-  const t12 = decideMode({ aqi: 85, uv: 4, humidity: 52, skinFeel: {} });
-  console.assert(t12.mode === 'BALANCE' && t12.isDefault, 'Test 12 Failed: Should default to BALANCE');
-
-  console.log('✅ All 12 decideMode() unit tests passed successfully!');
-  console.groupEnd();
-}
-runUnitTests();
 
 // ============================================================================
 // 5. DEMO PRESETS & KNOWN INDIAN CITIES
@@ -565,7 +522,223 @@ const MODE_DETAILS = {
       }
     ]
   }
-};
+}
+
+/**
+ * Builds personalized AM and PM barrier routine steps based on reported symptoms
+ * while maintaining the active mode priority (Shield > Hydrate > Balance).
+ */
+function buildPersonalizedRoutine(baseMode, skinFeel = {}, aqi = 0, uv = 0, humidity = 50) {
+  const modeKey = (baseMode || 'BALANCE').toUpperCase();
+  const base = MODE_DETAILS[modeKey] || MODE_DETAILS.BALANCE;
+
+  // Deep copy base steps
+  const amSteps = JSON.parse(JSON.stringify(base.routineAM));
+  const pmSteps = JSON.parse(JSON.stringify(base.routinePM));
+
+  const isOily = Boolean(skinFeel.oily);
+  const isTight = Boolean(skinFeel.tight);
+  const isDull = Boolean(skinFeel.dull);
+  const isBreakouts = Boolean(skinFeel.breakouts);
+
+  const balanceTipsAdded = isOily && modeKey !== 'BALANCE';
+
+  let retentionNote = null;
+  const hasConcerns = isOily || isTight || isDull || isBreakouts;
+
+  if (hasConcerns) {
+    if (aqi > 200) {
+      retentionNote = 'Shield mode stays active because of air quality; your selection adjusted the steps.';
+    } else if (uv >= 6) {
+      retentionNote = 'Shield mode stays active because of solar UV; your selection adjusted the steps.';
+    } else if (humidity < 40) {
+      retentionNote = 'Hydrate mode stays active because of dry air; your selection adjusted the steps.';
+    } else if (humidity > 65) {
+      retentionNote = 'Balance mode stays active because of humidity; your selection adjusted the steps.';
+    } else {
+      if (isTight) {
+        retentionNote = null; // Changed mode to Hydrate
+      } else {
+        retentionNote = 'Balance mode stays active; your selection adjusted the steps.';
+      }
+    }
+  }
+
+  // 1. Personalize for Oily / Shiny
+  if (isOily) {
+    amSteps[0] = {
+      step: '01',
+      title: 'Gentle Low-Foaming Cleanse',
+      desc: 'Gentle cleanse with lukewarm water to clear excess surface sebum without aggressive stripping or triggering rebound oil.',
+      dose: '1 pump'
+    };
+    amSteps[1] = {
+      step: '02',
+      title: 'Garnier ClimaGuard (Lightweight Gel Dosing)',
+      desc: 'Apply lightweight gel texture in a smaller amount. 1 pump delivers 5% Niacinamide to help control excess oil while 2% Ectoin helps protect against micro-particulates without greasiness.',
+      dose: '1 pump (smaller amount)'
+    };
+    amSteps[2].desc += ' Lightweight fluid texture; no heavy creams to prevent midday shine.';
+
+    pmSteps[0] = {
+      step: '01',
+      title: 'Gentle Purifying Cleanse',
+      desc: 'Ultra-gentle purifying wash to lift daytime sebum, sunscreen, and particulate grime without disturbing skin lipids.',
+      dose: 'Gentle rinse'
+    };
+    pmSteps[1] = {
+      step: '02',
+      title: 'Garnier ClimaGuard Overnight Gel Recovery',
+      desc: 'Apply 1-2 pumps lightweight gel texture (smaller amount). High-potency Niacinamide supports ceramide production, may help control excess oil, and aids overnight barrier recovery.',
+      dose: '1-2 pumps (smaller amount)'
+    };
+    pmSteps[2] = {
+      step: '03',
+      title: 'Lightweight Barrier Emulsion',
+      desc: 'Apply sheer micro-drop only where needed. Avoid heavy creams to maintain pores clear and breathable overnight.',
+      dose: 'Micro pea-sized drop'
+    };
+  }
+
+  // 2. Personalize for Tight / Dry
+  if (isTight) {
+    amSteps[0] = {
+      step: '01',
+      title: 'Milky Non-Foaming Conditioning Wash',
+      desc: 'Gentle non-foaming cleanse with lukewarm water. Cushions the barrier and prevents trans-epidermal moisture loss.',
+      dose: 'Gentle splash'
+    };
+    if (!isOily) {
+      amSteps[1] = {
+        step: '02',
+        title: 'Garnier ClimaGuard Deep Moisture Infusion',
+        desc: 'Apply generously on damp skin, then pat an extra hydrating layer over dry areas. 1.2% Ceramide NP and squalane bind moisture deeply within stratum corneum.',
+        dose: '2 generous pumps + hydrating layer'
+      };
+    } else {
+      amSteps[1] = {
+        step: '02',
+        title: 'Garnier ClimaGuard Balanced Gel Infusion',
+        desc: 'Smooth lightweight gel onto damp skin to add a hydrating layer without heavy oils. 5% Niacinamide may help control excess oil while Ceramide NP relieves tight feeling.',
+        dose: '1-2 pumps on damp skin'
+      };
+    }
+
+    pmSteps[0] = {
+      step: '01',
+      title: 'Ultra-Gentle Non-Foaming Cleanse',
+      desc: 'Non-foaming nourishing cleanse to lift impurities without stripping delicate barrier lipids.',
+      dose: 'Lukewarm rinse'
+    };
+    if (!isOily) {
+      pmSteps[2] = {
+        step: '03',
+        title: 'Lipid-Replenishing Barrier Seal',
+        desc: 'Seal with a nourishing layer of sugarcane squalane emulsion to help reduce overnight moisture loss and restore lipid comfort.',
+        dose: 'Generous pea-sized amount'
+      };
+    }
+  }
+
+  // 3. Personalize for Dull / Tired
+  if (isDull) {
+    amSteps[1].desc += ' Gentle exfoliation-free brightening note: antioxidant support from Vitamin C-rich Amla paired with daily sunscreen helps maintain radiant skin feel without harsh exfoliating acids.';
+    pmSteps[1].desc += ' Overnight radiance note: supports natural barrier rest, hydration, and overnight recovery through sleep (exfoliation-free).';
+  }
+
+  // 4. Personalize for Breakouts
+  if (isBreakouts) {
+    amSteps[1].desc += ' Non-comedogenic & fragrance-free steps: avoid layering heavy products and do not pick at skin. If breakouts persist, consult a dermatologist.';
+    pmSteps[1].desc += ' Non-comedogenic & fragrance-free formula: avoid pore-clogging balms and do not pick at skin. If breakouts persist, consult a dermatologist.';
+  }
+
+  return {
+    am: amSteps,
+    pm: pmSteps,
+    retentionNote,
+    balanceTipsAdded
+  };
+}
+
+// ============================================================================
+// 4. CONSOLE ASSERT UNIT TESTS
+// ============================================================================
+function runUnitTests() {
+  console.group('🧪 ClimaCheck decideMode() Unit Test Suite');
+
+  // Test 1: AQI > 200 triggers SHIELD
+  const t1 = decideMode({ aqi: 205, uv: 3, humidity: 50 });
+  console.assert(t1.mode === 'SHIELD', 'Test 1 Failed: AQI > 200 should trigger SHIELD');
+
+  // Test 2: UV >= 6 triggers SHIELD (exact boundary UV = 6)
+  const t2 = decideMode({ aqi: 150, uv: 6, humidity: 50 });
+  console.assert(t2.mode === 'SHIELD', 'Test 2 Failed: UV = 6 should trigger SHIELD');
+
+  // Test 3: UV 5.9 does not trigger SHIELD
+  const t3 = decideMode({ aqi: 150, uv: 5.9, humidity: 50 });
+  console.assert(t3.mode === 'BALANCE', 'Test 3 Failed: UV 5.9 should default to BALANCE');
+
+  // Test 4: Humidity < 40% triggers HYDRATE
+  const t4 = decideMode({ aqi: 120, uv: 4, humidity: 39 });
+  console.assert(t4.mode === 'HYDRATE', 'Test 4 Failed: Humidity 39% should trigger HYDRATE');
+
+  // Test 5: Exact boundary Humidity = 40% should NOT trigger HYDRATE by humidity
+  const t5 = decideMode({ aqi: 100, uv: 3, humidity: 40 });
+  console.assert(t5.mode === 'BALANCE', 'Test 5 Failed: Humidity 40% should default to BALANCE');
+
+  // Test 6: Tight/dry skin triggers HYDRATE even if humidity is normal
+  const t6 = decideMode({ aqi: 100, uv: 3, humidity: 55, skinFeel: { tight: true } });
+  console.assert(t6.mode === 'HYDRATE', 'Test 6 Failed: Tight skin should trigger HYDRATE');
+
+  // Test 7: Humidity > 65% triggers BALANCE
+  const t7 = decideMode({ aqi: 90, uv: 4, humidity: 66 });
+  console.assert(t7.mode === 'BALANCE', 'Test 7 Failed: Humidity 66% should trigger BALANCE');
+
+  // Test 8: Exact boundary Humidity = 65% should NOT trigger BALANCE by humidity (defaults to balance)
+  const t8 = decideMode({ aqi: 90, uv: 4, humidity: 65 });
+  console.assert(t8.mode === 'BALANCE' && t8.isDefault, 'Test 8 Failed: Humidity 65% should be default balance');
+
+  // Test 9: Priority 1: SHIELD beats HYDRATE (AQI > 200 + Humidity < 40%)
+  const t9 = decideMode({ aqi: 240, uv: 4, humidity: 30 });
+  console.assert(t9.mode === 'SHIELD', 'Test 9 Failed: Shield must take priority over Hydrate');
+
+  // Test 10: Priority 2: SHIELD beats BALANCE (UV >= 6 + Humidity > 65%)
+  const t10 = decideMode({ aqi: 80, uv: 8, humidity: 75 });
+  console.assert(t10.mode === 'SHIELD', 'Test 10 Failed: Shield must take priority over Balance');
+
+  // Test 11: Priority 3: HYDRATE beats BALANCE (Humidity < 40% + Oily skin toggle)
+  const t11 = decideMode({ aqi: 110, uv: 3, humidity: 35, skinFeel: { oily: true } });
+  console.assert(t11.mode === 'HYDRATE', 'Test 11 Failed: Hydrate must take priority over Balance');
+
+  // Test 12: Default fallback when no rules are met
+  const t12 = decideMode({ aqi: 85, uv: 4, humidity: 52, skinFeel: {} });
+  console.assert(t12.mode === 'BALANCE' && t12.isDefault, 'Test 12 Failed: Should default to BALANCE');
+
+  // Test 13: Skin feel personalization tests (all 4 symptoms visibly change routine)
+  const baseRoutine = buildPersonalizedRoutine('BALANCE', {}, 85, 4, 52);
+  const baseText = JSON.stringify(baseRoutine.am) + JSON.stringify(baseRoutine.pm);
+
+  for (let i = 1; i < 16; i++) {
+    const feel = {
+      oily: Boolean(i & 1),
+      tight: Boolean(i & 2),
+      dull: Boolean(i & 4),
+      breakouts: Boolean(i & 8)
+    };
+    const pRes = buildPersonalizedRoutine('BALANCE', feel, 85, 4, 52);
+    const pText = JSON.stringify(pRes.am) + JSON.stringify(pRes.pm);
+    console.assert(pText !== baseText, 'Test 13 Failed: Combination should change routine text');
+  }
+
+  // Test 14: Shield mode retention note and balance tips badge
+  const shieldOily = buildPersonalizedRoutine('SHIELD', { oily: true }, 348, 3, 35);
+  console.assert(shieldOily.balanceTipsAdded === true, 'Test 14 Failed: balanceTipsAdded should be true');
+  console.assert(shieldOily.retentionNote === 'Shield mode stays active because of air quality; your selection adjusted the steps.', 'Test 14 Failed: retention note should match');
+
+  console.log('✅ All 12 decideMode() unit tests passed successfully!');
+  console.groupEnd();
+}
+runUnitTests();;
 
 // ============================================================================
 // 8. TELEMETRY FETCHING & SIMULATION CONTROLLER
@@ -807,6 +980,18 @@ async function updateUI() {
     humidity: appState.humidity,
     skinFeel: appState.skinFeel
   });
+
+  const clientPersonalized = buildPersonalizedRoutine(
+    localDecision.mode,
+    appState.skinFeel,
+    appState.aqiData.aqi,
+    appState.uv,
+    appState.humidity
+  );
+  localDecision.personalizedRoutine = clientPersonalized;
+  localDecision.retentionNote = clientPersonalized.retentionNote;
+  localDecision.balanceTipsAdded = clientPersonalized.balanceTipsAdded;
+
   appState.modeResult = localDecision;
 
   // 2. Location label
@@ -869,7 +1054,13 @@ async function updateUI() {
         mode: recData.mode.toUpperCase(),
         reasons: recData.reasons,
         allTriggers: recData.all_triggered_rules,
-        serverRoutine: recData.routine
+        serverRoutine: recData.routine,
+        retentionNote: recData.personalization_note,
+        balanceTipsAdded: recData.balance_tips_added,
+        personalizedRoutine: {
+          am: recData.routine.am,
+          pm: recData.routine.pm
+        }
       };
       renderModeCard(appState.modeResult);
     }
@@ -1014,7 +1205,10 @@ function renderModeCard(modeDecision) {
   const summaryEl = document.getElementById('mode-summary');
   const iconWrapper = document.getElementById('mode-icon-wrapper');
   const badgeEl = document.getElementById('mode-badge');
+  const balanceTipsBadge = document.getElementById('mode-balance-tips-badge');
   const reasonsWrapper = document.getElementById('mode-reasons-list');
+  const noteBox = document.getElementById('mode-personalization-note');
+  const noteText = document.getElementById('mode-personalization-note-text');
 
   if (container) {
     container.className = `rounded-3xl p-5 sm:p-7 border-2 shadow-lg transition-all duration-500 bg-gradient-to-br ${modeData.cardBg} ${modeData.cardBorder} group relative overflow-hidden`;
@@ -1034,6 +1228,15 @@ function renderModeCard(modeDecision) {
     badgeEl.textContent = `Today's Priority: ${modeDecision.mode}`;
   }
 
+  // Balance tips added pill
+  if (balanceTipsBadge) {
+    if (modeDecision.balanceTipsAdded) {
+      balanceTipsBadge.classList.remove('hidden');
+    } else {
+      balanceTipsBadge.classList.add('hidden');
+    }
+  }
+
   // Render "WHY" Reason Chips
   if (reasonsWrapper) {
     reasonsWrapper.innerHTML = '';
@@ -1050,16 +1253,35 @@ function renderModeCard(modeDecision) {
     });
   }
 
+  // Personalization override note (e.g. Shield mode stays active because of air quality)
+  if (noteBox && noteText) {
+    if (modeDecision.retentionNote) {
+      noteText.textContent = modeDecision.retentionNote;
+      noteBox.classList.remove('hidden');
+    } else {
+      noteBox.classList.add('hidden');
+      noteText.textContent = '';
+    }
+  }
+
   // Render Steps
-  renderRoutineSteps(modeData);
+  renderRoutineSteps(modeDecision);
 }
 
-function renderRoutineSteps(modeData) {
-  let stepsList = appState.activeRoutineTab === 'am' ? modeData.routineAM : modeData.routinePM;
-  if (appState.modeResult && appState.modeResult.serverRoutine) {
+function renderRoutineSteps(modeDecision) {
+  let stepsList = [];
+  if (modeDecision && modeDecision.personalizedRoutine) {
+    stepsList = appState.activeRoutineTab === 'am' ? modeDecision.personalizedRoutine.am : modeDecision.personalizedRoutine.pm;
+  } else if (appState.modeResult && appState.modeResult.personalizedRoutine) {
+    stepsList = appState.activeRoutineTab === 'am' ? appState.modeResult.personalizedRoutine.am : appState.modeResult.personalizedRoutine.pm;
+  } else if (appState.modeResult && appState.modeResult.serverRoutine) {
     const srv = appState.modeResult.serverRoutine;
     if (appState.activeRoutineTab === 'am' && srv.am) stepsList = srv.am;
     else if (appState.activeRoutineTab === 'pm' && srv.pm) stepsList = srv.pm;
+  } else {
+    const modeKey = (modeDecision ? modeDecision.mode : (appState.modeResult ? appState.modeResult.mode : 'BALANCE')).toUpperCase();
+    const modeData = MODE_DETAILS[modeKey] || MODE_DETAILS.BALANCE;
+    stepsList = appState.activeRoutineTab === 'am' ? modeData.routineAM : modeData.routinePM;
   }
 
   const container = document.getElementById('routine-steps-container');
@@ -1087,18 +1309,30 @@ function renderRoutineSteps(modeData) {
 
 function updateSkinFeelToggles() {
   const toggles = ['oily', 'tight', 'dull', 'breakouts'];
+  let hasActive = false;
+
   toggles.forEach(key => {
     const btn = document.getElementById(`toggle-${key}`);
     if (!btn) return;
-    const isActive = appState.skinFeel[key];
+    const isActive = Boolean(appState.skinFeel[key]);
     if (isActive) {
-      btn.className = 'flex flex-col items-center justify-center p-3 rounded-2xl border bg-emerald-900 text-white border-emerald-900 text-center gap-1 shadow-sm transition-all';
+      hasActive = true;
+      btn.className = 'flex flex-col items-center justify-center p-3 rounded-2xl border-2 bg-emerald-900 text-white border-emerald-500 text-center gap-1 shadow-md ring-2 ring-emerald-500/20 transition-all font-semibold relative';
       btn.setAttribute('aria-pressed', 'true');
     } else {
-      btn.className = 'flex flex-col items-center justify-center p-3 rounded-2xl border border-gray-200 bg-white hover:border-emerald-500 transition-all text-gray-700 text-center gap-1 group shadow-xs';
+      btn.className = 'flex flex-col items-center justify-center p-3 rounded-2xl border border-gray-200 bg-white hover:border-emerald-500 hover:bg-emerald-50/20 transition-all text-gray-700 text-center gap-1 group shadow-xs';
       btn.setAttribute('aria-pressed', 'false');
     }
   });
+
+  const clearBtn = document.getElementById('btn-clear-skin-feel');
+  if (clearBtn) {
+    if (hasActive) {
+      clearBtn.classList.remove('hidden');
+    } else {
+      clearBtn.classList.add('hidden');
+    }
+  }
 }
 
 function renderTrackerUI() {
@@ -1479,24 +1713,18 @@ document.addEventListener('DOMContentLoaded', () => {
       appState.userManuallySwitchedRoutine = true;
       appState.activeRoutineTab = 'am';
       updateRoutineTabButtons();
-      if (appState.modeResult) {
-        const modeData = MODE_DETAILS[appState.modeResult.mode] || MODE_DETAILS.BALANCE;
-        renderRoutineSteps(modeData);
-      }
+      renderRoutineSteps(appState.modeResult);
     });
 
     pmTabBtn.addEventListener('click', () => {
       appState.userManuallySwitchedRoutine = true;
       appState.activeRoutineTab = 'pm';
       updateRoutineTabButtons();
-      if (appState.modeResult) {
-        const modeData = MODE_DETAILS[appState.modeResult.mode] || MODE_DETAILS.BALANCE;
-        renderRoutineSteps(modeData);
-      }
+      renderRoutineSteps(appState.modeResult);
     });
   }
 
-  // 10. Skin Feel Toggles
+  // 10. Skin Feel Toggles & Clear Option
   const toggles = ['oily', 'tight', 'dull', 'breakouts'];
   toggles.forEach(key => {
     const btn = document.getElementById(`toggle-${key}`);
@@ -1507,6 +1735,14 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   });
+
+  const clearSkinFeelBtn = document.getElementById('btn-clear-skin-feel');
+  if (clearSkinFeelBtn) {
+    clearSkinFeelBtn.addEventListener('click', () => {
+      appState.skinFeel = { oily: false, tight: false, dull: false, breakouts: false };
+      updateUI();
+    });
+  }
 
   // 11. Product Dossier Navigation Tabs
   const tabActives = document.getElementById('tab-dossier-actives');
