@@ -341,7 +341,7 @@ function getRoutine(mode = 'BALANCE', tab = 'AM', symptoms = [], skinTone = 'med
       s2 = {
         step: '02',
         title: 'Garnier ClimaGuard Serum-Gel on Damp Skin',
-        instructions: 'Apply directly on damp skin. Ceramide NP and squalane help lock in water molecules and prevent moisture evaporation.',
+        instructions: 'Apply directly on damp skin. Ceramide NP and squalane help lock in water molecules and reduce moisture evaporation.',
         amount: '2 pumps'
       };
       s3 = {
@@ -366,7 +366,7 @@ function getRoutine(mode = 'BALANCE', tab = 'AM', symptoms = [], skinTone = 'med
       s3 = {
         step: '03',
         title: 'Richer Ceramide Barrier Moisturiser',
-        instructions: 'Apply a richer ceramide barrier moisturiser to seal in hydration and help prevent overnight trans-epidermal water loss.',
+        instructions: 'Apply a richer ceramide barrier moisturiser to seal in hydration and support overnight barrier recovery.',
         amount: 'Nickel-sized amount'
       };
     }
@@ -422,12 +422,12 @@ function getRoutine(mode = 'BALANCE', tab = 'AM', symptoms = [], skinTone = 'med
     if (normTone === 'fair') {
       schedule = {
         primary: '07:30 – 08:30 AM · Gentle cleanse & barrier priming',
-        midday: '11:30 AM – 12:30 PM (Strict 2-Hour Reapplication): Reapply SPF 50+ generously before peak solar UV to prevent acute erythema and DNA photo-damage.'
+        midday: '11:30 AM – 12:30 PM (2-Hour Reapplication Window): Reapply SPF 50+ generously before peak midday sun; may help soothe the look of redness and shield against sunburn.'
       };
     } else if (normTone === 'deep') {
       schedule = {
         primary: '07:30 – 08:30 AM · Friction-free cleanse (pat, do not rub) & weightless water-gel',
-        midday: '12:30 PM – 01:30 PM (Zero-White-Cast / HEV Defense): Reapply transparent fluid SPF 15 min prior to commuter sun & traffic smog to prevent melanosome transfer & AhR pigment flares.'
+        midday: '12:30 PM – 01:30 PM (Zero-White-Cast Reapplication): Reapply transparent fluid SPF 15 min prior to commuter sun and traffic smog; supports an even-looking tone against city stress.'
       };
     } else {
       schedule = {
@@ -438,11 +438,11 @@ function getRoutine(mode = 'BALANCE', tab = 'AM', symptoms = [], skinTone = 'med
   } else {
     if (normTone === 'fair') {
       schedule = {
-        primary: '20:30 – 21:30 PM · Ultra-mild cleanse & lipid repair (soothes daytime vascular erythema & calms micro-flushing)'
+        primary: '20:30 – 21:30 PM · Ultra-mild cleanse & lipid repair; may help soothe the look of redness from daytime heat and sun.'
       };
     } else if (normTone === 'deep') {
       schedule = {
-        primary: '20:30 – 21:30 PM · Non-abrasive micro-cleanse with fingertips only (prevents friction-induced PIH & calms hyperactive melanocytes)'
+        primary: '20:30 – 21:30 PM · Non-abrasive micro-cleanse with fingertips only; gentle, friction-free cleansing may help avoid irritation that can leave dark marks.'
       };
     } else {
       schedule = {
@@ -451,40 +451,40 @@ function getRoutine(mode = 'BALANCE', tab = 'AM', symptoms = [], skinTone = 'med
     }
   }
 
-  // 2. Skin Tone Step Adaptations & Dermatological Rationale
+  // 2. Skin Tone Step Adaptations & Plain Rationale
   if (normTab === 'AM') {
     if (normTone === 'fair') {
-      s3.title = 'Broad-Spectrum SPF 50+ PA++++ (High Erythema Shield)';
-      s3.instructions = 'High-protection UV shield formulated with photostable Mexoryl filters. Prioritize rigorous reapplication every 2 hours if outdoor UV is moderate-to-high to prevent acute sunburn and redness. Formulated with soothing Centella to calm vascular flush.';
-      personalisedChips.push('Skin Tone: Fair / Light (Type I–II)');
-      notes.push('Phototype I–II Profile: Lower baseline melanin increases vulnerability to acute erythema (sunburn) and DNA photo-stress. Requires strict 2-hour midday reapplication and soothing barrier lipids.');
+      s3.title = 'Broad-Spectrum SPF 50+ PA++++ (Sunburn & Redness Defense)';
+      s3.instructions = 'High-protection UV shield formulated with photostable Mexoryl filters. Reapply every 2 hours when outdoor UV is moderate-to-high to help protect against sunburn. Formulated with soothing Centella that may help soothe the look of redness.';
+      personalisedChips.push('Skin tone: Fair');
+      notes.push('Fair profile: Skin tends to sunburn easily and show redness. Regular midday reapplication and gentle barrier lipids may help soothe the look of redness.');
     } else if (normTone === 'deep') {
-      s1.instructions += ' Pat gently; avoid aggressive facial rubbing which can stimulate melanocytes.';
-      s3.title = 'Zero-White-Cast Invisible Gel SPF 50+ (Anti-PIH & HEV Defense)';
-      s3.instructions = 'Strictly zero white cast formulation (invisible finish or iron-oxide tinted). Defends against both UV and visible blue light (HEV) which trigger stubborn melasma and post-inflammatory hyperpigmentation (PIH) in melanin-rich skin. Pat into skin without rubbing.';
-      personalisedChips.push('Skin Tone: Dusky / Deep (Type V–VI)');
-      notes.push('Phototype V–VI Profile: Rich melanin offers natural photoprotection, but melanocytes are hyper-reactive to friction, inflammation, and visible blue light. Prioritizes zero white cast, gentle patting (anti-friction), and AhR/PIH defense.');
+      s1.instructions += ' Pat gently; gentle, friction-free cleansing may help avoid irritation that can leave dark marks.';
+      s3.title = 'Zero-White-Cast Invisible Gel SPF 50+ (Even-Tone & Invisible Finish)';
+      s3.instructions = 'Strictly zero white cast formulation with an invisible finish. Defends against UV and visible light to help support an even-looking tone. Pat into skin gently without harsh rubbing.';
+      personalisedChips.push('Skin tone: Deep');
+      notes.push('Deep tone profile: Highly prone to uneven tone and dark marks from friction or breakouts. Prioritizes a zero-white-cast finish, friction-free patting, and daily sun protection that supports an even-looking tone.');
     } else {
       s3.title = 'Invisible Fluid SPF 50+ (Anti-Dullness & Anti-Tanning)';
-      s3.instructions = 'Lightweight, dry-touch UV protection with zero white cast. 5% Niacinamide inhibits UV-induced melanosome transfer; reapply before midday commuter sun and smog.';
-      personalisedChips.push('Skin Tone: Medium / Wheatish (Type III–IV)');
-      notes.push('Phototype III–IV Profile: Balanced melanin provides moderate UV defense, but urban smog and sunlight trigger oxidative tanning and uneven tone. Emphasizes invisible fluid SPF and midday commuter reapplication.');
+      s3.instructions = 'Lightweight, dry-touch UV protection with zero white cast. 5% Niacinamide supports an even-looking tone; reapply before midday commuter sun and smog.';
+      personalisedChips.push('Skin tone: Medium');
+      notes.push('Medium tone profile: Prone to tanning and uneven tone from urban smog and sun. Emphasizes invisible fluid SPF and midday commuter reapplication to support an even-looking tone.');
     }
   } else {
     if (normTone === 'fair') {
-      s1.instructions += ' Use lukewarm water; avoid hot water which aggravates vascular erythema.';
-      s2.instructions += ' Soothes daytime micro-erythema and replenishes barrier lipids.';
-      personalisedChips.push('Skin Tone: Fair / Light (Type I–II)');
-      notes.push('Phototype I–II Profile: Prioritizes calming daytime vascular flushing and replenishing stratum corneum lipid bilayers.');
+      s1.instructions += ' Use lukewarm water; avoid hot water which can increase the look of redness.';
+      s2.instructions += ' May help soothe the look of redness from daytime heat and replenishes barrier lipids.';
+      personalisedChips.push('Skin tone: Fair');
+      notes.push('Fair profile: Prioritizes soothing the look of redness and replenishing barrier lipids.');
     } else if (normTone === 'deep') {
-      s1.title = 'Ultra-Gentle Non-Abrasive Cleanse (Anti-PIH)';
-      s1.instructions = 'Cleanse using fingertips only; avoid abrasive washcloths or rough rubbing to prevent friction-induced post-inflammatory hyperpigmentation (PIH).';
-      s2.instructions += ' Niacinamide safely calms melanocyte transfer without rebound hypopigmentation.';
-      personalisedChips.push('Skin Tone: Dusky / Deep (Type V–VI)');
-      notes.push('Phototype V–VI Profile: Focuses on friction-free cleansing and melanocyte stabilization to avoid post-inflammatory marks.');
+      s1.title = 'Ultra-Gentle Non-Abrasive Cleanse';
+      s1.instructions = 'Cleanse using fingertips only; gentle, friction-free cleansing may help avoid irritation that can leave dark marks.';
+      s2.instructions += ' Niacinamide supports an even-looking tone and overnight barrier recovery.';
+      personalisedChips.push('Skin tone: Deep');
+      notes.push('Deep tone profile: Focuses on gentle, friction-free cleansing to avoid irritation that can leave dark marks, supporting an even-looking tone.');
     } else {
-      personalisedChips.push('Skin Tone: Medium / Wheatish (Type III–IV)');
-      notes.push('Phototype III–IV Profile: Balances thorough micro-pollutant removal with barrier recovery to prevent smog-induced dullness.');
+      personalisedChips.push('Skin tone: Medium');
+      notes.push('Medium tone profile: Balances thorough micro-pollutant removal with barrier recovery to support radiance and an even-looking tone.');
     }
   }
 
@@ -517,8 +517,8 @@ function getRoutine(mode = 'BALANCE', tab = 'AM', symptoms = [], skinTone = 'med
           s3.title = 'Oil-Free Zero-White-Cast Gel + Matte SPF';
           s3.instructions = 'Swapped to an oil-free gel with zero white cast and matte finish to maintain hydration and protect against visible light without excess shine.';
         } else if (normTone === 'fair') {
-          s3.title = 'Oil-Free High-Erythema Gel + Matte SPF';
-          s3.instructions = 'Swapped to an oil-free gel plus broad-spectrum matte SPF to prevent sunburn without excess shine.';
+          s3.title = 'Oil-Free Sunburn Defense Gel + Matte SPF';
+          s3.instructions = 'Swapped to an oil-free gel plus broad-spectrum matte SPF to help protect against sunburn without excess shine.';
         } else {
           s3.title = 'Oil-Free Mattifying Gel + Matte SPF';
           s3.instructions = 'Swapped to a light oil-free gel plus matte SPF to maintain hydration without excess shine.';
@@ -952,6 +952,8 @@ async function fetchWeatherData(lat, lon, cityName = 'Delhi') {
           label: `${data.aqi_category} (${data.approx_aqi})`
         };
         appState.bsi = calculateClientBSI(appState.pm25, appState.uv, appState.humidity, appState.temperature);
+        appState.isCached = !!data.cached;
+        appState.apiError = data.cached ? 'Using cached city telemetry' : null;
         appState.isDemoFallback = false;
         appState.isSimulated = false;
         setActivePresetBtn(null);
@@ -997,6 +999,8 @@ async function fetchWeatherData(lat, lon, cityName = 'Delhi') {
           appState.uv = Math.round((currentAir.uv_index ?? 4) * 10) / 10;
           appState.aqiData = calculateCPCB_AQI(appState.pm25);
           appState.bsi = calculateClientBSI(appState.pm25, appState.uv, appState.humidity, appState.temperature);
+          appState.isCached = false;
+          appState.apiError = null;
           appState.isDemoFallback = false;
           appState.isSimulated = false;
           setActivePresetBtn(null);
@@ -1010,9 +1014,10 @@ async function fetchWeatherData(lat, lon, cityName = 'Delhi') {
     // 3. Cached city fallback if both failed
     if (!success) {
       applyPresetTelemetry(cityName.toLowerCase());
-      appState.apiError = 'Using offline telemetry for ' + cityName;
+      appState.apiError = 'Using cached city telemetry';
       appState.isDemoFallback = true;
-      appState.isSimulated = true;
+      appState.isCached = true;
+      appState.isSimulated = false;
     }
 
     setDefaultTabOnCityLoad();
@@ -1171,10 +1176,10 @@ async function updateUI() {
   const locEl = document.getElementById('current-city-label');
   if (locEl) locEl.textContent = appState.currentLocationName;
 
-  // 3. Error Banner
+  // 3. Error Banner (Keep warning visible when using cached/fallback weather data)
   const errorBanner = document.getElementById('api-status-banner');
   if (errorBanner) {
-    if (appState.isDemoFallback || appState.apiError) {
+    if (appState.isDemoFallback || appState.isCached || appState.apiError) {
       errorBanner.classList.remove('hidden');
       const msg = document.getElementById('api-status-text');
       if (msg) msg.textContent = appState.apiError || 'Using cached city telemetry';
@@ -1243,11 +1248,15 @@ function updateRoutineTabButtons() {
 }
 
 function renderConditionsAndBSI() {
-  // Telemetry status badge & card source pills ("Simulated" vs "Live")
+  // Telemetry status badge & card source pills ("Simulated" vs "Cached" vs "Live")
+  const isCachedData = appState.isDemoFallback || appState.isCached;
   const teleTag = document.getElementById('telemetry-mode-tag');
   if (teleTag) {
     if (appState.isSimulated) {
       teleTag.textContent = 'Simulated';
+      teleTag.className = 'text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300';
+    } else if (isCachedData) {
+      teleTag.textContent = 'Cached';
       teleTag.className = 'text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300';
     } else {
       teleTag.textContent = 'Live';
@@ -1259,6 +1268,9 @@ function renderConditionsAndBSI() {
   sourcePills.forEach(pill => {
     if (appState.isSimulated) {
       pill.textContent = 'Simulated';
+      pill.className = 'telemetry-source-pill text-[7.5px] font-extrabold uppercase px-1 rounded bg-amber-100 text-amber-900 border border-amber-200';
+    } else if (isCachedData) {
+      pill.textContent = 'Cached';
       pill.className = 'telemetry-source-pill text-[7.5px] font-extrabold uppercase px-1 rounded bg-amber-100 text-amber-900 border border-amber-200';
     } else {
       pill.textContent = 'Live';
@@ -1508,9 +1520,9 @@ function updateSkinToneButtons() {
   const currentTone = appState.skinTone || 'medium';
   const badge = document.getElementById('skin-tone-current-badge');
   if (badge) {
-    if (currentTone === 'fair') badge.textContent = 'Fair (I–II)';
-    else if (currentTone === 'deep') badge.textContent = 'Dusky / Deep (V–VI)';
-    else badge.textContent = 'Medium (III–IV)';
+    if (currentTone === 'fair') badge.textContent = 'Fair';
+    else if (currentTone === 'deep') badge.textContent = 'Deep';
+    else badge.textContent = 'Medium';
   }
 
   ['fair', 'medium', 'deep'].forEach(toneKey => {

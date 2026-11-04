@@ -394,29 +394,28 @@ class TestPersonalisationLogic:
                 # Verify schedule differences
                 assert r_fair["schedule"]["primary"] != r_deep["schedule"]["primary"]
                 if tab == "AM":
-                    assert "2-Hour" in r_fair["schedule"]["midday"] or "Erythema" in r_fair["schedule"]["midday"]
-                    assert "Zero-White-Cast" in r_deep["schedule"]["midday"] or "HEV" in r_deep["schedule"]["midday"]
+                    assert "2-Hour" in r_fair["schedule"]["midday"] or "redness" in r_fair["schedule"]["midday"].lower()
+                    assert "Zero-White-Cast" in r_deep["schedule"]["midday"] or "even-looking" in r_deep["schedule"]["midday"].lower()
 
-    def test_deep_skin_tone_zero_white_cast_and_anti_pih(self):
-        """Verifies deep skin tone includes anti-PIH, zero-white-cast, and patting instructions."""
+    def test_deep_skin_tone_zero_white_cast_and_even_tone(self):
+        """Verifies deep skin tone includes even-tone, zero-white-cast, and gentle cleansing instructions."""
         r_am = get_routine("SHIELD", "AM", [], "deep")
         assert "Zero-White-Cast" in r_am["steps"][2]["title"]
         assert "zero white cast" in r_am["steps"][2]["instructions"].lower()
-        assert "melanin-rich" in r_am["steps"][2]["instructions"].lower()
         assert "pat" in r_am["steps"][0]["instructions"].lower() or "pat" in r_am["steps"][2]["instructions"].lower()
-        assert any("Dusky / Deep" in c for c in r_am["personalised_chips"])
+        assert any("Skin tone: Deep" in c for c in r_am["personalised_chips"])
 
         r_pm = get_routine("BALANCE", "PM", [], "deep")
-        assert "Anti-PIH" in r_pm["steps"][0]["title"]
-        assert "post-inflammatory hyperpigmentation" in r_pm["steps"][0]["instructions"].lower()
+        assert "Ultra-Gentle Non-Abrasive Cleanse" in r_pm["steps"][0]["title"]
+        assert "dark marks" in r_pm["steps"][0]["instructions"].lower()
 
-    def test_fair_skin_tone_sunburn_and_erythema(self):
-        """Verifies fair skin tone includes erythema/sunburn defense and 2-hour reapplication."""
+    def test_fair_skin_tone_sunburn_and_redness(self):
+        """Verifies fair skin tone includes sunburn defense, redness care, and 2-hour reapplication."""
         r_am = get_routine("BALANCE", "AM", [], "fair")
-        assert "Erythema" in r_am["steps"][2]["title"]
-        assert "sunburn" in r_am["steps"][2]["instructions"].lower() or "erythema" in r_am["steps"][2]["instructions"].lower()
+        assert "Sunburn & Redness Defense" in r_am["steps"][2]["title"]
+        assert "sunburn" in r_am["steps"][2]["instructions"].lower()
         assert "2 hours" in r_am["steps"][2]["instructions"].lower()
-        assert any("Fair / Light" in c for c in r_am["personalised_chips"])
+        assert any("Skin tone: Fair" in c for c in r_am["personalised_chips"])
 
     def test_recommend_endpoint_accepts_and_tailors_for_skin_tone(self):
         """Verifies /api/recommend endpoint accepts skin_tone and returns tailored response."""
@@ -430,7 +429,7 @@ class TestPersonalisationLogic:
         assert res.status_code == 200
         data = res.json()
         assert data["skin_tone"] == "deep"
-        assert any("Dusky / Deep" in c for c in data["personalised_chips"])
+        assert any("Skin tone: Deep" in c for c in data["personalised_chips"])
         assert "Zero-White-Cast" in data["routine"]["am"][2]["title"]
 
         payload_fair = {
@@ -443,10 +442,10 @@ class TestPersonalisationLogic:
         assert res_fair.status_code == 200
         data_fair = res_fair.json()
         assert data_fair["skin_tone"] == "fair"
-        assert "Erythema" in data_fair["routine"]["am"][2]["title"]
+        assert "Sunburn & Redness Defense" in data_fair["routine"]["am"][2]["title"]
 
     def test_invalid_skin_tone_fallback(self):
         """Verifies unrecognized skin tone gracefully falls back to medium."""
         r = get_routine("BALANCE", "AM", [], "unrecognized_tone")
         assert r["skin_tone"] == "medium"
-        assert any("Medium / Wheatish" in c for c in r["personalised_chips"])
+        assert any("Skin tone: Medium" in c for c in r["personalised_chips"])

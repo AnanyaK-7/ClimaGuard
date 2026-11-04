@@ -54,10 +54,11 @@ One-click simulation toolbar for competition evaluators to test ClimaGuard under
 - **Indian Adaptogens:** Amla (*Emblica Officinalis*, high bio-active Vitamin C) & Centella Asiatica (*Gotu Kola*, Madecassoside fraction).
 - **Formulation Evaluation Status:** Conceptual study design on Reconstructed Human Epidermis (RHE) for competition evaluation; shows no laboratory or clinical results.
 
-### 4. Privacy & Sustainable Packaging
+### 4. Privacy & Sustainable Packaging (Design Targets)
 - **Check-in data stays on your device:** Stored in `localStorage` by default (no mandatory cloud accounts or tracking).
-- **68% virgin plastic reduction** through 100% PCR aluminum outer shell with mono-material PP refill pods.
-- **94% readily biodegradable formula chassis** (OECD 301 standard).
+- **Target: at least 30% post-consumer recycled content** (not yet measured).
+- **Target: pass the OECD 301 ready-biodegradability test (planned)**.
+- **Mono-material refill pouch to cut plastic; LCA planned**.
 
 ### 5. Night Detection & Routine Dosing
 - **Automatic PM Default:** When solar UV is 0 (nighttime), the application automatically presents the **PM (Night Repair)** routine.
@@ -116,7 +117,7 @@ All **47 automated tests** pass, verifying:
 - Decision rule priority (Shield > Hydrate > Balance).
 - Exact boundary triggers (UV = 6.0 vs 5.9, humidity = 40.0% vs 39.9%, AQI = 200 vs 201).
 - Routine personalization engine, symptom combinations (all 16 subsets), and AM/PM tab state decoupling.
-- Skin tone phototype differentiation (Fitzpatrick Types I–II, III–IV, V–VI): anti-PIH vs anti-erythema protocols, zero-white-cast fluid SPF, and tailored application & midday reapplication schedules.
+- Skin tone differentiation (Fair, Medium, Deep): sunburn and dark mark care, zero-white-cast fluid SPF, and tailored application & midday reapplication schedules.
 - All FastAPI endpoints (`/api/health`, `/api/conditions`, `/api/recommend`, `/api/simulate`, `/api/actives`, `/api/checkins`).
 
 ---
