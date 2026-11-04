@@ -7,7 +7,14 @@ boundary rules, FastAPI endpoints, simulation presets, and fallback handling.
 import pytest
 from fastapi.testclient import TestClient
 
-from api.index import app, compute_cpcb_aqi, evaluate_mode, calculate_barrier_stress_index
+from api.index import (
+    app,
+    compute_cpcb_aqi,
+    evaluate_mode,
+    calculate_barrier_stress_index,
+    get_override_note,
+    get_routine,
+)
 
 client = TestClient(app)
 
@@ -257,90 +264,113 @@ class TestAPIEndpoints:
         data = res.json()
         assert data["status"] == "unconfigured"
 
+
 # ============================================================================
-# 5. ALL 16 COMBINATIONS OF SKIN FEEL TOGGLES PERSONALIZATION TESTS
+# 5. PERSONALISATION & ROUTINE UNIT TESTS (decideMode & getRoutine)
 # ============================================================================
-import itertools
+class TestPersonalisationLogic:
+    """Verifies strict deterministic rules for decideMode, getRoutine, and symptom modifiers."""
 
-class TestSkinFeelPersonalization:
-    """
-    Verifies that every combination of the four skin feel toggles (oily, tight, dull, breakouts)
-    visibly changes the rendered routine text, maintains mode priority, and observes non-medical phrasing.
-    """
-    ALL_SYMPTOMS = ["oily", "tight", "dull", "breakouts"]
+    def test_dull_and_breakouts_never_change_mode(self):
+        # Baseline normal weather -> balance
+        mode_base, _, _ = evaluate_mode(approx_aqi=100, uv=3.0, humidity=50, concerns=[])
+        assert mode_base == "balance"
 
-    @pytest.fixture
-    def all_16_combinations(self):
-        combos = []
-        for r in range(len(self.ALL_SYMPTOMS) + 1):
-            for subset in itertools.combinations(self.ALL_SYMPTOMS, r):
-                combos.append(list(subset))
-        assert len(combos) == 16
-        return combos
+        # Adding dull or breakouts keeps mode balance
+        mode_dull, _, triggers_dull = evaluate_mode(approx_aqi=100, uv=3.0, humidity=50, concerns=["dull"])
+        assert mode_dull == "balance"
+        assert any("Dull" in t for t in triggers_dull)
 
-    def test_all_16_combinations_change_routine(self, all_16_combinations):
-        # Baseline: empty concerns under mild conditions (AQI 70, UV 3.0, Humidity 55.0)
-        base_res = client.post("/api/recommend", json={
-            "conditions": {"approx_aqi": 70, "uv": 3.0, "humidity": 55.0},
-            "concerns": []
-        }).json()
-        base_text = " ".join(s["title"] + " " + s["desc"] + " " + (s["dose"] or "") for s in base_res["routine"]["am"] + base_res["routine"]["pm"])
+        mode_breakouts, _, triggers_b = evaluate_mode(approx_aqi=100, uv=3.0, humidity=50, concerns=["breakouts"])
+        assert mode_breakouts == "balance"
+        assert any("Breakouts" in t for t in triggers_b)
 
-        for combo in all_16_combinations:
-            res = client.post("/api/recommend", json={
-                "conditions": {"approx_aqi": 70, "uv": 3.0, "humidity": 55.0},
-                "concerns": combo
-            }).json()
+    def test_override_note_when_higher_priority_rule_applies(self):
+        # Shield with tight symptom: tight would trigger hydrate, but shield takes priority
+        note_shield = get_override_note("shield", approx_aqi=240, uv=3.0, humidity=50, concerns=["tight"])
+        assert note_shield is not None
+        assert "Shield mode stays active" in note_shield
+        assert "high air pollution" in note_shield
+        assert "your selections adjusted the steps" in note_shield
 
-            current_text = " ".join(s["title"] + " " + s["desc"] + " " + (s["dose"] or "") for s in res["routine"]["am"] + res["routine"]["pm"])
+        # Hydrate with oily symptom: oily would trigger balance, but hydrate takes priority
+        note_hydrate = get_override_note("hydrate", approx_aqi=100, uv=3.0, humidity=35, concerns=["oily"])
+        assert note_hydrate is not None
+        assert "Hydrate mode stays active" in note_hydrate
+        assert "dry air" in note_hydrate
 
-            if not combo:
-                assert current_text == base_text
-                assert res["personalization_note"] is None
-                assert res["balance_tips_added"] is False
-            else:
-                # Every non-empty combination MUST change the rendered routine text!
-                assert current_text != base_text, f"Routine text for combination {combo} did not change compared to baseline!"
+        # Balance with oily symptom: no higher priority override
+        note_balance = get_override_note("balance", approx_aqi=100, uv=3.0, humidity=50, concerns=["oily"])
+        assert note_balance is None
 
-                # Check Oily assertions
-                if "oily" in combo:
-                    assert any("You reported: Oily / shiny" in r for r in res["reasons"])
-                    assert "smaller amount" in current_text or "1 pump" in current_text
-                    assert "lightweight gel" in current_text.lower() or "excess oil" in current_text.lower()
+    def test_base_routines_structure_all_modes_and_tabs(self):
+        for mode in ["SHIELD", "HYDRATE", "BALANCE"]:
+            for tab in ["AM", "PM"]:
+                routine = get_routine(mode, tab, [])
+                assert len(routine["steps"]) == 3, f"Expected 3 steps for {mode} {tab}"
+                for s in routine["steps"]:
+                    assert "step" in s and s["step"] in ["01", "02", "03"]
+                    assert "title" in s and len(s["title"]) > 5
+                    assert "instructions" in s and len(s["instructions"]) > 10
+                    assert "amount" in s and len(s["amount"]) > 0
 
-                # Check Tight assertions
-                if "tight" in combo:
-                    assert any("You reported: Tight / dry" in r for r in res["reasons"])
-                    assert res["mode"] == "hydrate"
-                    assert "hydrating layer" in current_text.lower() or "non-foaming" in current_text.lower()
+    def test_symptom_modifier_oily(self):
+        r_am = get_routine("SHIELD", "AM", ["oily"])
+        # Moisturiser swapped to oil-free gel
+        assert "Oil-Free" in r_am["steps"][2]["title"]
+        # Serum-Gel 1 pump
+        assert "1 pump" in r_am["steps"][1]["amount"]
+        # Blot note added to cleanser
+        assert "blot, do not over-cleanse" in r_am["steps"][0]["instructions"].lower()
+        # Chip added
+        assert any("Oily / shiny" in c for c in r_am["personalised_chips"])
 
-                # Check Dull assertions
-                if "dull" in combo:
-                    assert any("You reported: Dull / tired" in r for r in res["reasons"])
-                    assert "brightening note" in current_text.lower() or "radiance" in current_text.lower()
+    def test_symptom_modifier_tight(self):
+        r_pm = get_routine("BALANCE", "PM", ["tight"])
+        # Cleanser swapped to non-foaming cream cleanser
+        assert "Cream Cleanser" in r_pm["steps"][0]["title"]
+        # Damp skin note
+        assert "damp skin" in r_pm["steps"][1]["instructions"].lower()
+        # Hydration layer note
+        assert "hydration layer" in r_pm["steps"][2]["instructions"].lower()
+        # Chip added
+        assert any("Tight / dry" in c for c in r_pm["personalised_chips"])
 
-                # Check Breakouts assertions
-                if "breakouts" in combo:
-                    assert any("You reported: Breakouts" in r for r in res["reasons"])
-                    assert "non-comedogenic" in current_text.lower()
-                    assert "consult a dermatologist" in current_text.lower()
+    def test_symptom_modifier_dull(self):
+        r_am = get_routine("BALANCE", "AM", ["dull"])
+        assert "daily sunscreen, hydration and sleep support radiance" in r_am["steps"][2]["instructions"].lower()
+        assert "avoid harsh scrubs" in r_am["steps"][2]["instructions"].lower()
+        assert any("Dull / tired" in c for c in r_am["personalised_chips"])
 
-    def test_shield_mode_retention_and_balance_tips(self, all_16_combinations):
-        # Under Delhi winter smog (AQI 348), Shield mode must remain active across all combinations
-        for combo in all_16_combinations:
-            res = client.post("/api/recommend", json={
-                "conditions": {"approx_aqi": 348, "uv": 3.4, "humidity": 35.0},
-                "concerns": combo
-            }).json()
+    def test_symptom_modifier_breakouts(self):
+        r_pm = get_routine("SHIELD", "PM", ["breakouts"])
+        assert "non-comedogenic" in r_pm["steps"][0]["instructions"].lower()
+        assert "consult a dermatologist" in r_pm["steps"][2]["instructions"].lower()
+        assert any("Breakout-prone" in c for c in r_pm["personalised_chips"])
 
-            assert res["mode"] == "shield", f"Expected Shield mode to remain active for combo {combo}"
+    def test_combination_skin_oily_and_tight(self):
+        r = get_routine("BALANCE", "AM", ["oily", "tight"])
+        # Combination skin note present
+        assert any("combination skin" in n.lower() for n in r["notes"])
+        # Lightweight hydrating gel with no heavy oils
+        assert "hydrating" in r["steps"][2]["title"].lower()
+        assert "no heavy oils" in r["steps"][2]["instructions"].lower()
+        # Serum 1 pump
+        assert r["steps"][1]["amount"] == "1 pump"
+        assert any("Combination skin" in c for c in r["personalised_chips"])
 
-            if combo:
-                assert res["personalization_note"] == "Shield mode stays active because of air quality; your selection adjusted the steps."
-            else:
-                assert res["personalization_note"] is None
+    def test_all_16_symptom_combinations_differ_from_baseline(self):
+        """Verifies every non-empty symptom combination produces visibly distinct text from baseline."""
+        import itertools
+        symptoms_pool = ["oily", "tight", "dull", "breakouts"]
+        for mode in ["SHIELD", "HYDRATE", "BALANCE"]:
+            for tab in ["AM", "PM"]:
+                base = get_routine(mode, tab, [])
+                base_text = " ".join([s["title"] + s["instructions"] + s["amount"] for s in base["steps"]])
 
-            if "oily" in combo:
-                assert res["balance_tips_added"] is True, "Balance tips added badge must be True when oily is selected in Shield mode"
-            else:
-                assert res["balance_tips_added"] is False
+                for r in range(1, len(symptoms_pool) + 1):
+                    for combo in itertools.combinations(symptoms_pool, r):
+                        mod = get_routine(mode, tab, list(combo))
+                        mod_text = " ".join([s["title"] + s["instructions"] + s["amount"] for s in mod["steps"]])
+                        assert mod_text != base_text, f"Combo {combo} produced identical text to base for {mode} {tab}!"
+                        assert len(mod["personalised_chips"]) >= 1

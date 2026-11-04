@@ -8,7 +8,7 @@ __pycache__/
 verify_e2e.py
 scratch/
 
-# Presentations, PDFs, and Documents
+# Presentations and PDFs
 *.pptx
 *.ppt
 *.pdf
