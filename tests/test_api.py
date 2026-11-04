@@ -374,3 +374,79 @@ class TestPersonalisationLogic:
                         mod_text = " ".join([s["title"] + s["instructions"] + s["amount"] for s in mod["steps"]])
                         assert mod_text != base_text, f"Combo {combo} produced identical text to base for {mode} {tab}!"
                         assert len(mod["personalised_chips"]) >= 1
+
+    def test_different_skin_tones_produce_distinct_routines_and_schedules(self):
+        """Verifies fair, medium, and deep skin tones produce distinct step text and distinct schedules."""
+        for mode in ["SHIELD", "HYDRATE", "BALANCE"]:
+            for tab in ["AM", "PM"]:
+                r_fair = get_routine(mode, tab, [], "fair")
+                r_med = get_routine(mode, tab, [], "medium")
+                r_deep = get_routine(mode, tab, [], "deep")
+
+                text_fair = " ".join([s["title"] + s["instructions"] for s in r_fair["steps"]])
+                text_med = " ".join([s["title"] + s["instructions"] for s in r_med["steps"]])
+                text_deep = " ".join([s["title"] + s["instructions"] for s in r_deep["steps"]])
+
+                assert text_fair != text_med, f"Fair and Medium text must differ for {mode} {tab}"
+                assert text_med != text_deep, f"Medium and Deep text must differ for {mode} {tab}"
+                assert text_fair != text_deep, f"Fair and Deep text must differ for {mode} {tab}"
+
+                # Verify schedule differences
+                assert r_fair["schedule"]["primary"] != r_deep["schedule"]["primary"]
+                if tab == "AM":
+                    assert "2-Hour" in r_fair["schedule"]["midday"] or "Erythema" in r_fair["schedule"]["midday"]
+                    assert "Zero-White-Cast" in r_deep["schedule"]["midday"] or "HEV" in r_deep["schedule"]["midday"]
+
+    def test_deep_skin_tone_zero_white_cast_and_anti_pih(self):
+        """Verifies deep skin tone includes anti-PIH, zero-white-cast, and patting instructions."""
+        r_am = get_routine("SHIELD", "AM", [], "deep")
+        assert "Zero-White-Cast" in r_am["steps"][2]["title"]
+        assert "zero white cast" in r_am["steps"][2]["instructions"].lower()
+        assert "melanin-rich" in r_am["steps"][2]["instructions"].lower()
+        assert "pat" in r_am["steps"][0]["instructions"].lower() or "pat" in r_am["steps"][2]["instructions"].lower()
+        assert any("Dusky / Deep" in c for c in r_am["personalised_chips"])
+
+        r_pm = get_routine("BALANCE", "PM", [], "deep")
+        assert "Anti-PIH" in r_pm["steps"][0]["title"]
+        assert "post-inflammatory hyperpigmentation" in r_pm["steps"][0]["instructions"].lower()
+
+    def test_fair_skin_tone_sunburn_and_erythema(self):
+        """Verifies fair skin tone includes erythema/sunburn defense and 2-hour reapplication."""
+        r_am = get_routine("BALANCE", "AM", [], "fair")
+        assert "Erythema" in r_am["steps"][2]["title"]
+        assert "sunburn" in r_am["steps"][2]["instructions"].lower() or "erythema" in r_am["steps"][2]["instructions"].lower()
+        assert "2 hours" in r_am["steps"][2]["instructions"].lower()
+        assert any("Fair / Light" in c for c in r_am["personalised_chips"])
+
+    def test_recommend_endpoint_accepts_and_tailors_for_skin_tone(self):
+        """Verifies /api/recommend endpoint accepts skin_tone and returns tailored response."""
+        payload_deep = {
+            "conditions": {"approx_aqi": 180, "uv": 4.5, "humidity": 45},
+            "symptoms": ["oily"],
+            "skin_tone": "deep",
+            "tab": "AM"
+        }
+        res = client.post("/api/recommend", json=payload_deep)
+        assert res.status_code == 200
+        data = res.json()
+        assert data["skin_tone"] == "deep"
+        assert any("Dusky / Deep" in c for c in data["personalised_chips"])
+        assert "Zero-White-Cast" in data["routine"]["am"][2]["title"]
+
+        payload_fair = {
+            "conditions": {"approx_aqi": 180, "uv": 4.5, "humidity": 45},
+            "symptoms": [],
+            "skin_tone": "fair",
+            "tab": "AM"
+        }
+        res_fair = client.post("/api/recommend", json=payload_fair)
+        assert res_fair.status_code == 200
+        data_fair = res_fair.json()
+        assert data_fair["skin_tone"] == "fair"
+        assert "Erythema" in data_fair["routine"]["am"][2]["title"]
+
+    def test_invalid_skin_tone_fallback(self):
+        """Verifies unrecognized skin tone gracefully falls back to medium."""
+        r = get_routine("BALANCE", "AM", [], "unrecognized_tone")
+        assert r["skin_tone"] == "medium"
+        assert any("Medium / Wheatish" in c for c in r["personalised_chips"])

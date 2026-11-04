@@ -254,9 +254,20 @@ function decideMode(inputs = {}) {
   };
 }
 
-function getRoutine(mode = 'BALANCE', tab = 'AM', symptoms = []) {
+function getRoutine(mode = 'BALANCE', tab = 'AM', symptoms = [], skinTone = 'medium') {
   const normMode = String(mode || 'BALANCE').trim().toUpperCase();
   const normTab = String(tab || 'AM').trim().toUpperCase();
+
+  // Normalize Skin Tone (Fitzpatrick scale)
+  const rawTone = String(skinTone || 'medium').trim().toLowerCase();
+  let normTone = 'medium';
+  if (['light', 'fair', 'type 1', 'type 2', 'i-ii', 'type i-ii'].includes(rawTone)) {
+    normTone = 'fair';
+  } else if (['deep', 'dusky', 'dark', 'melanin-rich', 'type 5', 'type 6', 'v-vi', 'type v-vi'].includes(rawTone)) {
+    normTone = 'deep';
+  } else {
+    normTone = 'medium';
+  }
 
   const symptomsSet = new Set();
   if (symptoms instanceof Set) {
@@ -405,7 +416,79 @@ function getRoutine(mode = 'BALANCE', tab = 'AM', symptoms = []) {
   const personalisedChips = [];
   const notes = [];
 
-  // Symptom Modifiers
+  // 1. Skin-Tone-Specific Application Schedule
+  let schedule = {};
+  if (normTab === 'AM') {
+    if (normTone === 'fair') {
+      schedule = {
+        primary: '07:30 – 08:30 AM · Gentle cleanse & barrier priming',
+        midday: '11:30 AM – 12:30 PM (Strict 2-Hour Reapplication): Reapply SPF 50+ generously before peak solar UV to prevent acute erythema and DNA photo-damage.'
+      };
+    } else if (normTone === 'deep') {
+      schedule = {
+        primary: '07:30 – 08:30 AM · Friction-free cleanse (pat, do not rub) & weightless water-gel',
+        midday: '12:30 PM – 01:30 PM (Zero-White-Cast / HEV Defense): Reapply transparent fluid SPF 15 min prior to commuter sun & traffic smog to prevent melanosome transfer & AhR pigment flares.'
+      };
+    } else {
+      schedule = {
+        primary: '07:30 – 08:30 AM · Refreshing cleanse & invisible barrier shield',
+        midday: '12:30 PM – 01:30 PM (Commuter Smog & UV Reapplication): Refresh with invisible fluid SPF before peak traffic smog & midday sun.'
+      };
+    }
+  } else {
+    if (normTone === 'fair') {
+      schedule = {
+        primary: '20:30 – 21:30 PM · Ultra-mild cleanse & lipid repair (soothes daytime vascular erythema & calms micro-flushing)'
+      };
+    } else if (normTone === 'deep') {
+      schedule = {
+        primary: '20:30 – 21:30 PM · Non-abrasive micro-cleanse with fingertips only (prevents friction-induced PIH & calms hyperactive melanocytes)'
+      };
+    } else {
+      schedule = {
+        primary: '20:30 – 21:30 PM · Micro-pollutant double cleanse (dissolves PM2.5 soot; overnight Niacinamide barrier recovery)'
+      };
+    }
+  }
+
+  // 2. Skin Tone Step Adaptations & Dermatological Rationale
+  if (normTab === 'AM') {
+    if (normTone === 'fair') {
+      s3.title = 'Broad-Spectrum SPF 50+ PA++++ (High Erythema Shield)';
+      s3.instructions = 'High-protection UV shield formulated with photostable Mexoryl filters. Prioritize rigorous reapplication every 2 hours if outdoor UV is moderate-to-high to prevent acute sunburn and redness. Formulated with soothing Centella to calm vascular flush.';
+      personalisedChips.push('Skin Tone: Fair / Light (Type I–II)');
+      notes.push('Phototype I–II Profile: Lower baseline melanin increases vulnerability to acute erythema (sunburn) and DNA photo-stress. Requires strict 2-hour midday reapplication and soothing barrier lipids.');
+    } else if (normTone === 'deep') {
+      s1.instructions += ' Pat gently; avoid aggressive facial rubbing which can stimulate melanocytes.';
+      s3.title = 'Zero-White-Cast Invisible Gel SPF 50+ (Anti-PIH & HEV Defense)';
+      s3.instructions = 'Strictly zero white cast formulation (invisible finish or iron-oxide tinted). Defends against both UV and visible blue light (HEV) which trigger stubborn melasma and post-inflammatory hyperpigmentation (PIH) in melanin-rich skin. Pat into skin without rubbing.';
+      personalisedChips.push('Skin Tone: Dusky / Deep (Type V–VI)');
+      notes.push('Phototype V–VI Profile: Rich melanin offers natural photoprotection, but melanocytes are hyper-reactive to friction, inflammation, and visible blue light. Prioritizes zero white cast, gentle patting (anti-friction), and AhR/PIH defense.');
+    } else {
+      s3.title = 'Invisible Fluid SPF 50+ (Anti-Dullness & Anti-Tanning)';
+      s3.instructions = 'Lightweight, dry-touch UV protection with zero white cast. 5% Niacinamide inhibits UV-induced melanosome transfer; reapply before midday commuter sun and smog.';
+      personalisedChips.push('Skin Tone: Medium / Wheatish (Type III–IV)');
+      notes.push('Phototype III–IV Profile: Balanced melanin provides moderate UV defense, but urban smog and sunlight trigger oxidative tanning and uneven tone. Emphasizes invisible fluid SPF and midday commuter reapplication.');
+    }
+  } else {
+    if (normTone === 'fair') {
+      s1.instructions += ' Use lukewarm water; avoid hot water which aggravates vascular erythema.';
+      s2.instructions += ' Soothes daytime micro-erythema and replenishes barrier lipids.';
+      personalisedChips.push('Skin Tone: Fair / Light (Type I–II)');
+      notes.push('Phototype I–II Profile: Prioritizes calming daytime vascular flushing and replenishing stratum corneum lipid bilayers.');
+    } else if (normTone === 'deep') {
+      s1.title = 'Ultra-Gentle Non-Abrasive Cleanse (Anti-PIH)';
+      s1.instructions = 'Cleanse using fingertips only; avoid abrasive washcloths or rough rubbing to prevent friction-induced post-inflammatory hyperpigmentation (PIH).';
+      s2.instructions += ' Niacinamide safely calms melanocyte transfer without rebound hypopigmentation.';
+      personalisedChips.push('Skin Tone: Dusky / Deep (Type V–VI)');
+      notes.push('Phototype V–VI Profile: Focuses on friction-free cleansing and melanocyte stabilization to avoid post-inflammatory marks.');
+    } else {
+      personalisedChips.push('Skin Tone: Medium / Wheatish (Type III–IV)');
+      notes.push('Phototype III–IV Profile: Balances thorough micro-pollutant removal with barrier recovery to prevent smog-induced dullness.');
+    }
+  }
+
+  // 3. Symptom Modifiers (Applied on top of Skin Tone)
   if (isCombo) {
     personalisedChips.push('Personalised for: Combination skin (Oily + Tight)');
     notes.push('Combination skin: T-zone shine with barrier dehydration; using a lightweight hydrating gel with no heavy oils.');
@@ -413,8 +496,13 @@ function getRoutine(mode = 'BALANCE', tab = 'AM', symptoms = []) {
     s2.amount = '1 pump';
     s2.instructions += ' Apply on damp skin for lightweight hydration.';
     if (normTab === 'AM') {
-      s3.title = 'Lightweight Hydrating Oil-Free Gel + Matte SPF';
-      s3.instructions = 'Layer a lightweight hydrating gel with no heavy oils, then apply matte SPF to keep shine controlled.';
+      if (normTone === 'deep') {
+        s3.title = 'Lightweight Hydrating Oil-Free Gel + Zero-White-Cast SPF';
+        s3.instructions = 'Layer a lightweight hydrating gel with no heavy oils, then apply zero-white-cast matte SPF to protect against visible light without shine.';
+      } else {
+        s3.title = 'Lightweight Hydrating Oil-Free Gel + Matte SPF';
+        s3.instructions = 'Layer a lightweight hydrating gel with no heavy oils, then apply matte SPF to keep shine controlled.';
+      }
     } else {
       s3.title = 'Lightweight Hydrating Gel (No Heavy Oils)';
       s3.instructions = 'Uses a breathable water-gel with no heavy oils to hydrate tight zones while keeping oily areas shine-free.';
@@ -425,8 +513,16 @@ function getRoutine(mode = 'BALANCE', tab = 'AM', symptoms = []) {
       s1.instructions += ' Note: Blot, do not over-cleanse.';
       s2.amount = '1 pump';
       if (normTab === 'AM') {
-        s3.title = 'Oil-Free Mattifying Gel + Matte SPF';
-        s3.instructions = 'Swapped to a light oil-free gel plus matte SPF to maintain hydration without excess shine.';
+        if (normTone === 'deep') {
+          s3.title = 'Oil-Free Zero-White-Cast Gel + Matte SPF';
+          s3.instructions = 'Swapped to an oil-free gel with zero white cast and matte finish to maintain hydration and protect against visible light without excess shine.';
+        } else if (normTone === 'fair') {
+          s3.title = 'Oil-Free High-Erythema Gel + Matte SPF';
+          s3.instructions = 'Swapped to an oil-free gel plus broad-spectrum matte SPF to prevent sunburn without excess shine.';
+        } else {
+          s3.title = 'Oil-Free Mattifying Gel + Matte SPF';
+          s3.instructions = 'Swapped to a light oil-free gel plus matte SPF to maintain hydration without excess shine.';
+        }
       } else {
         s3.title = 'Oil-Free Light Gel Moisturiser';
         s3.instructions = 'Swapped to a breathable oil-free gel moisturiser that absorbs quickly without clogging pores.';
@@ -462,7 +558,9 @@ function getRoutine(mode = 'BALANCE', tab = 'AM', symptoms = []) {
   return {
     steps: [s1, s2, s3],
     personalisedChips,
-    notes
+    notes,
+    schedule,
+    skinTone: normTone
   };
 }
 window.getRoutine = getRoutine;
@@ -607,6 +705,7 @@ const appState = {
   uv: 4.2,
   bsi: { score: 78, tier: 'High Stress', color: 'rose', strokeColor: '#E11D48' },
   conditions: { approx_aqi: 320, uv: 4.2, humidity: 38, temperature: 29 },
+  skinTone: (function() { try { return localStorage.getItem('climacheck_skin_tone') || 'medium'; } catch(e) { return 'medium'; } })(),
   symptoms: new Set(),
   skinFeel: {
     oily: false,
@@ -1323,14 +1422,15 @@ function renderModeCard(modeDecision) {
 function renderRoutineSteps() {
   const mode = (appState.modeResult && appState.modeResult.mode) ? appState.modeResult.mode : 'BALANCE';
   const tab = appState.activeTab || (appState.activeRoutineTab === 'pm' ? 'PM' : 'AM');
-  const routineData = getRoutine(mode, tab, appState.symptoms);
+  const skinTone = appState.skinTone || 'medium';
+  const routineData = getRoutine(mode, tab, appState.symptoms, skinTone);
 
   const container = document.getElementById('routine-steps-container');
   if (!container) return;
 
   container.innerHTML = '';
 
-  // 1. Personalised Chips
+  // 1. Personalised Chips (Skin Tone + Symptoms)
   if (routineData.personalisedChips && routineData.personalisedChips.length > 0) {
     const chipsWrapper = document.createElement('div');
     chipsWrapper.className = 'flex flex-wrap gap-1.5 pb-1';
@@ -1343,7 +1443,38 @@ function renderRoutineSteps() {
     container.appendChild(chipsWrapper);
   }
 
-  // 2. Combination Skin / Special Notes
+  // 2. Prescribed Application & Reapplication Schedule Card
+  if (routineData.schedule) {
+    const scheduleCard = document.createElement('div');
+    scheduleCard.className = 'p-3 rounded-2xl bg-gradient-to-r from-emerald-50/90 via-teal-50/50 to-white border border-emerald-200/80 text-xs shadow-xs space-y-1.5';
+    scheduleCard.innerHTML = `
+      <div class="flex items-center justify-between text-[11px] font-extrabold text-emerald-950 uppercase tracking-wider">
+        <span class="flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Prescribed ${tab} Application Schedule
+        </span>
+        <span class="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-white text-emerald-800 border border-emerald-200">
+          ${skinTone.toUpperCase()} TONE
+        </span>
+      </div>
+      <div class="space-y-1 text-[11px] text-gray-700">
+        <div class="flex items-start gap-1.5">
+          <span class="font-bold text-emerald-900 whitespace-nowrap">${tab === 'AM' ? '🌅 Morning Application:' : '🌙 Evening Routine:'}</span>
+          <span>${routineData.schedule.primary}</span>
+        </div>
+        ${routineData.schedule.midday ? `
+        <div class="flex items-start gap-1.5 pt-1 border-t border-emerald-100/80">
+          <span class="font-bold text-amber-900 whitespace-nowrap">☀️ Reapplication Window:</span>
+          <span>${routineData.schedule.midday}</span>
+        </div>` : ''}
+      </div>
+    `;
+    container.appendChild(scheduleCard);
+  }
+
+  // 3. Clinical Skin Tone Rationale / Combination Skin Notes
   if (routineData.notes && routineData.notes.length > 0) {
     routineData.notes.forEach(noteText => {
       const noteBox = document.createElement('div');
@@ -1353,7 +1484,7 @@ function renderRoutineSteps() {
     });
   }
 
-  // 3. Render 3 Step Cards
+  // 4. Render 3 Step Cards
   routineData.steps.forEach(step => {
     const card = document.createElement('div');
     card.className = 'flex items-start gap-3 p-3.5 rounded-2xl bg-white/90 border border-gray-200 shadow-xs hover:border-emerald-400 transition-all';
@@ -1370,6 +1501,27 @@ function renderRoutineSteps() {
       </div>
     `;
     container.appendChild(card);
+  });
+}
+
+function updateSkinToneButtons() {
+  const currentTone = appState.skinTone || 'medium';
+  const badge = document.getElementById('skin-tone-current-badge');
+  if (badge) {
+    if (currentTone === 'fair') badge.textContent = 'Fair (I–II)';
+    else if (currentTone === 'deep') badge.textContent = 'Dusky / Deep (V–VI)';
+    else badge.textContent = 'Medium (III–IV)';
+  }
+
+  ['fair', 'medium', 'deep'].forEach(toneKey => {
+    const btn = document.getElementById(`btn-tone-${toneKey}`);
+    if (!btn) return;
+    const isSelected = (toneKey === currentTone);
+    if (isSelected) {
+      btn.className = 'skin-tone-btn flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-emerald-800 bg-emerald-50/70 text-emerald-950 text-center gap-1.5 shadow-sm transition-all';
+    } else {
+      btn.className = 'skin-tone-btn flex flex-col items-center justify-center p-3 rounded-2xl border border-gray-200 bg-white hover:border-emerald-500 transition-all text-gray-700 text-center gap-1.5 shadow-xs';
+    }
   });
 }
 
@@ -1824,6 +1976,22 @@ document.addEventListener('DOMContentLoaded', () => {
       renderModeCardAndRoutine();
     });
   }
+
+  // 10C. Skin Tone Buttons (Fitzpatrick scale selector)
+  const toneButtons = ['fair', 'medium', 'deep'];
+  toneButtons.forEach(toneKey => {
+    const btn = document.getElementById(`btn-tone-${toneKey}`);
+    if (btn) {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        appState.skinTone = toneKey;
+        try { localStorage.setItem('climacheck_skin_tone', toneKey); } catch (_) {}
+        updateSkinToneButtons();
+        renderRoutineSteps();
+      });
+    }
+  });
+  updateSkinToneButtons();
 
   // 11. Product Dossier Navigation Tabs
   const tabActives = document.getElementById('tab-dossier-actives');

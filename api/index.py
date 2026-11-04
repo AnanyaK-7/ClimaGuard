@@ -406,14 +406,28 @@ def get_override_note(
     return None
 
 
-def get_routine(mode: str, tab: str, symptoms: List[str]) -> Dict[str, Any]:
+def get_routine(
+    mode: str,
+    tab: str,
+    symptoms: List[str],
+    skin_tone: str = "medium"
+) -> Dict[str, Any]:
     """
     Pure routine function returning 3 steps (cleanse, treat, protect or moisturise),
-    each with title, instructions, and amount, modified dynamically by symptoms.
+    modified dynamically by skin tone phototype and self-reported symptoms.
     """
     norm_mode = (mode or "BALANCE").strip().upper()
     norm_tab = (tab or "AM").strip().upper()
     norm_sym = {s.strip().lower() for s in symptoms if isinstance(s, str)}
+
+    # Normalize Skin Tone (Fitzpatrick scale)
+    raw_tone = (skin_tone or "medium").strip().lower()
+    if raw_tone in ["light", "fair", "type 1", "type 2", "i-ii", "type i-ii"]:
+        norm_tone = "fair"
+    elif raw_tone in ["deep", "dusky", "dark", "melanin-rich", "type 5", "type 6", "v-vi", "type v-vi"]:
+        norm_tone = "deep"
+    else:
+        norm_tone = "medium"
 
     has_oily = any(k in norm_sym for k in ["oily", "oily/shiny", "shine"])
     has_tight = any(k in norm_sym for k in ["tight", "tight/dry", "dry"])
@@ -543,7 +557,72 @@ def get_routine(mode: str, tab: str, symptoms: List[str]) -> Dict[str, Any]:
     personalised_chips: List[str] = []
     notes: List[str] = []
 
-    # Symptom Modifiers
+    # 1. Skin-Tone-Specific Application Schedule
+    if norm_tab == "AM":
+        if norm_tone == "fair":
+            schedule = {
+                "primary": "07:30 – 08:30 AM · Gentle cleanse & barrier priming",
+                "midday": "11:30 AM – 12:30 PM (Strict 2-Hour Reapplication): Reapply SPF 50+ generously before peak solar UV to prevent acute erythema and DNA photo-damage."
+            }
+        elif norm_tone == "deep":
+            schedule = {
+                "primary": "07:30 – 08:30 AM · Friction-free cleanse (pat, do not rub) & weightless water-gel",
+                "midday": "12:30 PM – 01:30 PM (Zero-White-Cast / HEV Defense): Reapply transparent fluid SPF 15 min prior to commuter sun & traffic smog to prevent melanosome transfer & AhR pigment flares."
+            }
+        else:
+            schedule = {
+                "primary": "07:30 – 08:30 AM · Refreshing cleanse & invisible barrier shield",
+                "midday": "12:30 PM – 01:30 PM (Commuter Smog & UV Reapplication): Refresh with invisible fluid SPF before peak traffic smog & midday sun."
+            }
+    else:
+        if norm_tone == "fair":
+            schedule = {
+                "primary": "20:30 – 21:30 PM · Ultra-mild cleanse & lipid repair (soothes daytime vascular erythema & calms micro-flushing)"
+            }
+        elif norm_tone == "deep":
+            schedule = {
+                "primary": "20:30 – 21:30 PM · Non-abrasive micro-cleanse with fingertips only (prevents friction-induced PIH & calms hyperactive melanocytes)"
+            }
+        else:
+            schedule = {
+                "primary": "20:30 – 21:30 PM · Micro-pollutant double cleanse (dissolves PM2.5 soot; overnight Niacinamide barrier recovery)"
+            }
+
+    # 2. Skin Tone Step Adaptations & Dermatological Rationale
+    if norm_tab == "AM":
+        if norm_tone == "fair":
+            s3["title"] = "Broad-Spectrum SPF 50+ PA++++ (High Erythema Shield)"
+            s3["instructions"] = "High-protection UV shield formulated with photostable Mexoryl filters. Prioritize rigorous reapplication every 2 hours if outdoor UV is moderate-to-high to prevent acute sunburn and redness. Formulated with soothing Centella to calm vascular flush."
+            personalised_chips.append("Skin Tone: Fair / Light (Type I–II)")
+            notes.append("Phototype I–II Profile: Lower baseline melanin increases vulnerability to acute erythema (sunburn) and DNA photo-stress. Requires strict 2-hour midday reapplication and soothing barrier lipids.")
+        elif norm_tone == "deep":
+            s1["instructions"] += " Pat gently; avoid aggressive facial rubbing which can stimulate melanocytes."
+            s3["title"] = "Zero-White-Cast Invisible Gel SPF 50+ (Anti-PIH & HEV Defense)"
+            s3["instructions"] = "Strictly zero white cast formulation (invisible finish or iron-oxide tinted). Defends against both UV and visible blue light (HEV) which trigger stubborn melasma and post-inflammatory hyperpigmentation (PIH) in melanin-rich skin. Pat into skin without rubbing."
+            personalised_chips.append("Skin Tone: Dusky / Deep (Type V–VI)")
+            notes.append("Phototype V–VI Profile: Rich melanin offers natural photoprotection, but melanocytes are hyper-reactive to friction, inflammation, and visible blue light. Prioritizes zero white cast, gentle patting (anti-friction), and AhR/PIH defense.")
+        else:
+            s3["title"] = "Invisible Fluid SPF 50+ (Anti-Dullness & Anti-Tanning)"
+            s3["instructions"] = "Lightweight, dry-touch UV protection with zero white cast. 5% Niacinamide inhibits UV-induced melanosome transfer; reapply before midday commuter sun and smog."
+            personalised_chips.append("Skin Tone: Medium / Wheatish (Type III–IV)")
+            notes.append("Phototype III–IV Profile: Balanced melanin provides moderate UV defense, but urban smog and sunlight trigger oxidative tanning and uneven tone. Emphasizes invisible fluid SPF and midday commuter reapplication.")
+    else:
+        if norm_tone == "fair":
+            s1["instructions"] += " Use lukewarm water; avoid hot water which aggravates vascular erythema."
+            s2["instructions"] += " Soothes daytime micro-erythema and replenishes barrier lipids."
+            personalised_chips.append("Skin Tone: Fair / Light (Type I–II)")
+            notes.append("Phototype I–II Profile: Prioritizes calming daytime vascular flushing and replenishing stratum corneum lipid bilayers.")
+        elif norm_tone == "deep":
+            s1["title"] = "Ultra-Gentle Non-Abrasive Cleanse (Anti-PIH)"
+            s1["instructions"] = "Cleanse using fingertips only; avoid abrasive washcloths or rough rubbing to prevent friction-induced post-inflammatory hyperpigmentation (PIH)."
+            s2["instructions"] += " Niacinamide safely calms melanocyte transfer without rebound hypopigmentation."
+            personalised_chips.append("Skin Tone: Dusky / Deep (Type V–VI)")
+            notes.append("Phototype V–VI Profile: Focuses on friction-free cleansing and melanocyte stabilization to avoid post-inflammatory marks.")
+        else:
+            personalised_chips.append("Skin Tone: Medium / Wheatish (Type III–IV)")
+            notes.append("Phototype III–IV Profile: Balances thorough micro-pollutant removal with barrier recovery to prevent smog-induced dullness.")
+
+    # 3. Symptom Modifiers (Applied on top of Skin Tone)
     if is_combo:
         personalised_chips.append("Personalised for: Combination skin (Oily + Tight)")
         notes.append("Combination skin: T-zone shine with barrier dehydration; using a lightweight hydrating gel with no heavy oils.")
@@ -551,8 +630,12 @@ def get_routine(mode: str, tab: str, symptoms: List[str]) -> Dict[str, Any]:
         s2["amount"] = "1 pump"
         s2["instructions"] += " Apply on damp skin for lightweight hydration."
         if norm_tab == "AM":
-            s3["title"] = "Lightweight Hydrating Oil-Free Gel + Matte SPF"
-            s3["instructions"] = "Layer a lightweight hydrating gel with no heavy oils, then apply matte SPF to keep shine controlled."
+            if norm_tone == "deep":
+                s3["title"] = "Lightweight Hydrating Oil-Free Gel + Zero-White-Cast SPF"
+                s3["instructions"] = "Layer a lightweight hydrating gel with no heavy oils, then apply zero-white-cast matte SPF to protect against visible light without shine."
+            else:
+                s3["title"] = "Lightweight Hydrating Oil-Free Gel + Matte SPF"
+                s3["instructions"] = "Layer a lightweight hydrating gel with no heavy oils, then apply matte SPF to keep shine controlled."
         else:
             s3["title"] = "Lightweight Hydrating Gel (No Heavy Oils)"
             s3["instructions"] = "Uses a breathable water-gel with no heavy oils to hydrate tight zones while keeping oily areas shine-free."
@@ -562,8 +645,15 @@ def get_routine(mode: str, tab: str, symptoms: List[str]) -> Dict[str, Any]:
             s1["instructions"] += " Note: Blot, do not over-cleanse."
             s2["amount"] = "1 pump"
             if norm_tab == "AM":
-                s3["title"] = "Oil-Free Mattifying Gel + Matte SPF"
-                s3["instructions"] = "Swapped to a light oil-free gel plus matte SPF to maintain hydration without excess shine."
+                if norm_tone == "deep":
+                    s3["title"] = "Oil-Free Zero-White-Cast Gel + Matte SPF"
+                    s3["instructions"] = "Swapped to an oil-free gel with zero white cast and matte finish to maintain hydration and protect against visible light without excess shine."
+                elif norm_tone == "fair":
+                    s3["title"] = "Oil-Free High-Erythema Gel + Matte SPF"
+                    s3["instructions"] = "Swapped to an oil-free gel plus broad-spectrum matte SPF to prevent sunburn without excess shine."
+                else:
+                    s3["title"] = "Oil-Free Mattifying Gel + Matte SPF"
+                    s3["instructions"] = "Swapped to a light oil-free gel plus matte SPF to maintain hydration without excess shine."
             else:
                 s3["title"] = "Oil-Free Light Gel Moisturiser"
                 s3["instructions"] = "Swapped to a breathable oil-free gel moisturiser that absorbs quickly without clogging pores."
@@ -592,7 +682,9 @@ def get_routine(mode: str, tab: str, symptoms: List[str]) -> Dict[str, Any]:
     return {
         "steps": [s1, s2, s3],
         "personalised_chips": personalised_chips,
-        "notes": notes
+        "notes": notes,
+        "schedule": schedule,
+        "skin_tone": norm_tone
     }
 
 # ============================================================================
@@ -732,6 +824,7 @@ class RecommendRequest(BaseModel):
     concerns: List[str] = Field(default_factory=list, description="Self-reported skin concerns")
     symptoms: List[str] = Field(default_factory=list, description="Self-reported skin symptoms")
     tab: Optional[str] = Field("AM", description="Active routine tab (AM or PM)")
+    skin_tone: Optional[str] = Field("medium", description="Skin tone phototype: fair, medium, or deep")
 
     @field_validator("concerns", "symptoms")
     @classmethod
@@ -765,6 +858,9 @@ class RecommendResponse(BaseModel):
     routine: RoutineGroup
     barrier_stress_index: Optional[int] = None
     personalised_chips: List[str] = Field(default_factory=list)
+    skin_tone: Optional[str] = "medium"
+    schedule: Optional[Dict[str, Any]] = None
+    notes: List[str] = Field(default_factory=list)
 
 class CheckInItem(BaseModel):
     date: str = Field(..., description="Date formatted as YYYY-MM-DD")
@@ -974,8 +1070,10 @@ async def recommend_mode(payload: RecommendRequest):
     temp = cond.temperature if cond.temperature is not None else 28.0
     bsi = calculate_barrier_stress_index(cond.approx_aqi * 0.7, cond.uv, cond.humidity, temp)["score"]
 
-    routine_am = get_routine(mode, "AM", raw_symptoms)
-    routine_pm = get_routine(mode, "PM", raw_symptoms)
+    raw_tone = payload.skin_tone or "medium"
+    routine_am = get_routine(mode, "AM", raw_symptoms, raw_tone)
+    routine_pm = get_routine(mode, "PM", raw_symptoms, raw_tone)
+    active_routine = routine_pm if payload.tab and payload.tab.upper() == "PM" else routine_am
 
     return RecommendResponse(
         mode=mode,
@@ -986,11 +1084,14 @@ async def recommend_mode(payload: RecommendRequest):
         all_triggered_rules=all_triggers,
         override_note=override_note,
         barrier_stress_index=bsi,
+        skin_tone=raw_tone,
+        schedule=active_routine.get("schedule"),
+        notes=active_routine.get("notes", []),
         routine=RoutineGroup(
             am=[RoutineStep(step=s["step"], title=s["title"], desc=s.get("instructions") or s.get("desc", ""), dose=s.get("amount") or s.get("dose")) for s in routine_am["steps"]],
             pm=[RoutineStep(step=s["step"], title=s["title"], desc=s.get("instructions") or s.get("desc", ""), dose=s.get("amount") or s.get("dose")) for s in routine_pm["steps"]],
         ),
-        personalised_chips=routine_am.get("personalised_chips", [])
+        personalised_chips=active_routine.get("personalised_chips", [])
     )
 
 # ============================================================================

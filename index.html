@@ -443,6 +443,60 @@
           </div>
         </section>
 
+        <!-- SKIN TONE & MELANIN PHOTOTYPE (FITZPATRICK SCALE) -->
+        <section class="glass-panel rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-1.5">
+                <h3 class="text-sm font-serif font-bold text-[#0A2922]">Skin Tone &amp; Melanin Profile</h3>
+                <span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">Fitzpatrick Scale</span>
+              </div>
+              <p class="text-[11px] text-gray-500">Adapts sunscreen texture, anti-PIH defense, and application timing to your melanin level.</p>
+            </div>
+            <span id="skin-tone-current-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-300 whitespace-nowrap">
+              Medium (III–IV)
+            </span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 pt-1">
+            <!-- Fair Tone -->
+            <button 
+              id="btn-tone-fair" 
+              type="button" 
+              data-tone="fair"
+              class="skin-tone-btn flex flex-col items-center justify-center p-3 rounded-2xl border border-gray-200 bg-white hover:border-emerald-500 transition-all text-gray-700 text-center gap-1.5 shadow-xs"
+            >
+              <span class="w-6 h-6 rounded-full border border-amber-200 bg-[#F5D0B5] shadow-xs flex items-center justify-center text-[10px]">⚪</span>
+              <span class="text-xs font-bold leading-tight">Fair / Light</span>
+              <span class="text-[9.5px] text-gray-500 leading-tight">Type I–II<br>Sunburn prone</span>
+            </button>
+
+            <!-- Medium / Wheatish Tone (Default) -->
+            <button 
+              id="btn-tone-medium" 
+              type="button" 
+              data-tone="medium"
+              class="skin-tone-btn flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-emerald-800 bg-emerald-50/70 text-emerald-950 text-center gap-1.5 shadow-xs"
+            >
+              <span class="w-6 h-6 rounded-full border border-amber-300 bg-[#D49E72] shadow-xs flex items-center justify-center text-[10px]">🟤</span>
+              <span class="text-xs font-bold leading-tight">Medium / Wheatish</span>
+              <span class="text-[9.5px] text-gray-500 leading-tight">Type III–IV<br>Tanning prone</span>
+            </button>
+
+            <!-- Deep / Melanin-Rich Tone -->
+            <button 
+              id="btn-tone-deep" 
+              type="button" 
+              data-tone="deep"
+              class="skin-tone-btn flex flex-col items-center justify-center p-3 rounded-2xl border border-gray-200 bg-white hover:border-emerald-500 transition-all text-gray-700 text-center gap-1.5 shadow-xs"
+            >
+              <span class="w-6 h-6 rounded-full border border-amber-900 bg-[#834925] shadow-xs flex items-center justify-center text-[10px]">🏾</span>
+              <span class="text-xs font-bold leading-tight">Dusky / Deep</span>
+              <span class="text-[9.5px] text-gray-500 leading-tight">Type V–VI<br>High PIH risk</span>
+            </button>
+          </div>
+        </section>
+
         <!-- "HOW IS YOUR SKIN FEELING?" (LIVE CO-FACTOR FEEDBACK TOGGLES) -->
         <section class="glass-panel rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
           <div class="flex items-start justify-between gap-2">
@@ -684,7 +738,7 @@
 
   </main>
 
-  <!-- Application Controller Script -->
-  <script src="app.js"></script>
+  <!-- Application Controller Script (Cache-busted v2.2) -->
+  <script src="app.js?v=2.2"></script>
 </body>
 </html>

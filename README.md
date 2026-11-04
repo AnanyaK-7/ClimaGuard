@@ -74,7 +74,7 @@ ClimaGuard/
 │   └── index.py             # FastAPI backend (Open-Meteo caching, CPCB AQI, BSI engine, Supabase)
 ├── tests/
 │   ├── __init__.py
-│   └── test_api.py          # 42 unit and integration tests (pytest)
+│   └── test_api.py          # 47 unit and integration tests (pytest)
 ├── index.html               # Responsive 3-column dashboard (Tailwind CSS CDN, Fraunces serif)
 ├── style.css                # Luxury derm-tech design tokens, SVG circular meters, animations
 ├── app.js                   # Client controller, 0ms reactivity, simulation runner, localStorage sync
@@ -110,12 +110,13 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 ```bash
 python -m pytest tests -v
 ```
-All **42 automated tests** pass, verifying:
+All **47 automated tests** pass, verifying:
 - CPCB PM2.5 breakpoints and boundary edges (0, 30, 60, 90, 120, 250, 600 µg/m³).
 - Environmental Stress Level scoring, clamping, and tier classifications.
 - Decision rule priority (Shield > Hydrate > Balance).
 - Exact boundary triggers (UV = 6.0 vs 5.9, humidity = 40.0% vs 39.9%, AQI = 200 vs 201).
 - Routine personalization engine, symptom combinations (all 16 subsets), and AM/PM tab state decoupling.
+- Skin tone phototype differentiation (Fitzpatrick Types I–II, III–IV, V–VI): anti-PIH vs anti-erythema protocols, zero-white-cast fluid SPF, and tailored application & midday reapplication schedules.
 - All FastAPI endpoints (`/api/health`, `/api/conditions`, `/api/recommend`, `/api/simulate`, `/api/actives`, `/api/checkins`).
 
 ---
