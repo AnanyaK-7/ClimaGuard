@@ -68,13 +68,13 @@ One-click simulation toolbar for competition evaluators to test ClimaGuard under
 ## 🏗 Monorepo Architecture
 
 ```
-D:\loreal challenge\
-├── api\
+ClimaGuard/
+├── api/
 │   ├── __init__.py
 │   └── index.py             # FastAPI backend (Open-Meteo caching, CPCB AQI, BSI engine, Supabase)
-├── tests\
+├── tests/
 │   ├── __init__.py
-│   └── test_api.py          # 33 unit and integration tests (pytest)
+│   └── test_api.py          # 42 unit and integration tests (pytest)
 ├── index.html               # Responsive 3-column dashboard (Tailwind CSS CDN, Fraunces serif)
 ├── style.css                # Luxury derm-tech design tokens, SVG circular meters, animations
 ├── app.js                   # Client controller, 0ms reactivity, simulation runner, localStorage sync
@@ -94,7 +94,8 @@ D:\loreal challenge\
 
 ### 2. Install Dependencies
 ```bash
-cd "D:\loreal challenge"
+git clone https://github.com/AnanyaK-7/ClimaGuard.git
+cd ClimaGuard
 pip install -r requirements.txt
 ```
 
@@ -109,11 +110,12 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 ```bash
 python -m pytest tests -v
 ```
-All **33 automated tests** pass, verifying:
+All **42 automated tests** pass, verifying:
 - CPCB PM2.5 breakpoints and boundary edges (0, 30, 60, 90, 120, 250, 600 µg/m³).
 - Environmental Stress Level scoring, clamping, and tier classifications.
 - Decision rule priority (Shield > Hydrate > Balance).
 - Exact boundary triggers (UV = 6.0 vs 5.9, humidity = 40.0% vs 39.9%, AQI = 200 vs 201).
+- Routine personalization engine, symptom combinations (all 16 subsets), and AM/PM tab state decoupling.
 - All FastAPI endpoints (`/api/health`, `/api/conditions`, `/api/recommend`, `/api/simulate`, `/api/actives`, `/api/checkins`).
 
 ---
